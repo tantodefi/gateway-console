@@ -66,8 +66,33 @@ await conversation.send(messageText);
 - [ ] Messages persist across page refresh
 - [ ] Shows error for invalid addresses
 ## Done summary
-TBD
+# fn-1.8: DM Messaging & ENS Resolution
 
+Implemented DM messaging with ENS resolution and reachability checking.
+
+## Files Created
+- `src/lib/ens.ts` - ENS resolution utility for address/ENS name resolution
+- `src/hooks/useConversations.ts` - Hooks for conversations, messages, and sending
+- `src/contexts/MessagingContext.tsx` - Context for managing selected conversation state
+- `src/components/messaging/ConversationList.tsx` - List of existing DM conversations
+- `src/components/messaging/MessageThread.tsx` - Display messages in a conversation
+- `src/components/messaging/MessageInput.tsx` - Compose and send messages
+- `src/components/messaging/NewConversationDialog.tsx` - Create new conversation with ENS/address
+- `src/components/messaging/index.ts` - Component exports
+
+## Files Updated
+- `src/contexts/index.ts` - Export MessagingProvider
+- `src/main.tsx` - Add MessagingProvider
+- `src/App.tsx` - Integrate messaging UI with conversation sidebar
+
+## Features
+- Resolve ENS names to Ethereum addresses via mainnet
+- Check XMTP reachability before starting conversation
+- Create DM conversations with inbox ID lookup
+- Send and receive text messages with streaming
+- Conversation list sorted by last message
+- Message thread with auto-scroll
+- New conversation dialog with demo address (hi.xmtp.eth)
 ## Evidence
 - Commits:
 - Tests:
