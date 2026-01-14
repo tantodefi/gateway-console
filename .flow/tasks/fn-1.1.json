@@ -1,14 +1,30 @@
 {
-  "assignee": null,
+  "assignee": "saul@xmtp.com",
   "claim_note": "",
-  "claimed_at": null,
+  "claimed_at": "2026-01-14T05:28:47.182708Z",
   "created_at": "2026-01-14T03:59:26.018156Z",
   "depends_on": [],
   "epic": "fn-1",
+  "evidence": {
+    "files_created": [
+      "src/lib/constants.ts",
+      "src/lib/wagmi.ts",
+      "src/lib/utils.ts",
+      "src/components/ui/button.tsx",
+      ".env.example",
+      "postcss.config.js",
+      "components.json"
+    ],
+    "verification": {
+      "dev_server": "npm run dev starts successfully on port 5173",
+      "shadcn": "Button component from @/components/ui/button renders correctly",
+      "typescript": "npx tsc --noEmit completes without errors"
+    }
+  },
   "id": "fn-1.1",
   "priority": null,
   "spec_path": ".flow/tasks/fn-1.1.md",
-  "status": "todo",
+  "status": "done",
   "title": "Project Setup & Configuration",
-  "updated_at": "2026-01-14T04:04:32.204397Z"
+  "updated_at": "2026-01-14T05:28:47.384030Z"
 }
