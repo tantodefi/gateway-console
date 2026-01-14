@@ -3,13 +3,17 @@ import { useMessages } from '@/hooks/useConversations'
 import { useMessaging } from '@/contexts/MessagingContext'
 import { useXMTP } from '@/contexts/XMTPContext'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Loader2, MessageSquare } from 'lucide-react'
+import { Loader2, MessageSquare, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { DecodedMessage } from '@xmtp/browser-sdk'
 
 function truncateAddress(address: string | null): string {
   if (!address) return 'Unknown'
   return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
+
+function truncateInboxId(inboxId: string): string {
+  return `${inboxId.slice(0, 6)}...${inboxId.slice(-4)}`
 }
 
 function formatMessageTime(nanos: bigint): string {
@@ -20,9 +24,10 @@ function formatMessageTime(nanos: bigint): string {
 interface MessageBubbleProps {
   message: DecodedMessage
   isOwn: boolean
+  showSender?: boolean
 }
 
-function MessageBubble({ message, isOwn }: MessageBubbleProps) {
+function MessageBubble({ message, isOwn, showSender = false }: MessageBubbleProps) {
   const content = message.content as string
 
   return (
@@ -32,6 +37,11 @@ function MessageBubble({ message, isOwn }: MessageBubbleProps) {
         isOwn ? 'items-end ml-auto' : 'items-start mr-auto'
       )}
     >
+      {showSender && !isOwn && (
+        <span className="text-xs text-muted-foreground px-1 font-medium">
+          {truncateInboxId(message.senderInboxId)}
+        </span>
+      )}
       <div
         className={cn(
           'px-3 py-2 rounded-2xl text-sm',
@@ -51,9 +61,10 @@ function MessageBubble({ message, isOwn }: MessageBubbleProps) {
 
 export function MessageThread() {
   const { inboxId } = useXMTP()
-  const { selectedConversation, peerAddress } = useMessaging()
+  const { selectedConversation, conversationType, peerAddress, groupName } = useMessaging()
   const { messages, isLoading } = useMessages(selectedConversation)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const isGroup = conversationType === 'group'
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -82,10 +93,22 @@ export function MessageThread() {
   return (
     <div className="flex-1 flex flex-col">
       {/* Header */}
-      <div className="p-3 border-b">
-        <span className="font-medium text-sm">
-          {truncateAddress(peerAddress)}
-        </span>
+      <div className="p-3 border-b flex items-center gap-2">
+        {isGroup ? (
+          <>
+            <Users className="h-4 w-4 text-purple-500" />
+            <span className="font-medium text-sm">
+              {groupName || 'Unnamed Group'}
+            </span>
+          </>
+        ) : (
+          <>
+            <MessageSquare className="h-4 w-4 text-primary" />
+            <span className="font-medium text-sm">
+              {truncateAddress(peerAddress)}
+            </span>
+          </>
+        )}
       </div>
 
       {/* Messages */}
@@ -101,6 +124,7 @@ export function MessageThread() {
                 key={msg.id}
                 message={msg}
                 isOwn={msg.senderInboxId === inboxId}
+                showSender={isGroup}
               />
             ))
           )}

@@ -64,8 +64,39 @@ await group.send(messageText);
 - [ ] Group persists across refresh
 - [ ] Can view group member list
 ## Done summary
-TBD
+# Task fn-1.10: Group Chat Support - Completed
 
+## Changes Made
+
+1. **Updated useConversations hook** (`src/hooks/useConversations.ts`):
+   - Added `Conversation` union type for `Dm | Group`
+   - Updated `ConversationData` to include type, name, memberCount
+   - Added `useCreateGroup` hook for creating group conversations
+   - Added `checkCanMessageMultiple` and `getInboxIds` for batch operations
+   - Updated `useConversations` to list both DMs and Groups
+
+2. **Updated MessagingContext** (`src/contexts/MessagingContext.tsx`):
+   - Changed from `Dm` to `Conversation` type
+   - Added `conversationType`, `groupName` state
+
+3. **Created NewGroupDialog** (`src/components/messaging/NewGroupDialog.tsx`):
+   - Enter group name and add members by address/ENS
+   - Validates member reachability before adding
+   - Shows status badges (resolving, reachable, unreachable)
+   - Creates group via XMTP SDK
+
+4. **Updated ConversationList** (`src/components/messaging/ConversationList.tsx`):
+   - Shows both DMs and Groups with different icons
+   - Displays group name and member count for groups
+   - Displays peer address for DMs
+
+5. **Updated MessageThread** (`src/components/messaging/MessageThread.tsx`):
+   - Shows sender identity for group messages
+   - Updated header to show group name with icon
+   - Added `showSender` prop to MessageBubble
+
+6. **Updated App.tsx**:
+   - Added NewGroupDialog button next to NewConversationDialog
 ## Evidence
 - Commits:
 - Tests:

@@ -8,6 +8,7 @@ import {
   MessageThread,
   MessageInput,
   NewConversationDialog,
+  NewGroupDialog,
 } from '@/components/messaging'
 import { useXMTP } from '@/contexts/XMTPContext'
 
@@ -22,8 +23,9 @@ function App() {
       {/* Conversation Sidebar - only show when XMTP connected */}
       {client && (
         <div className="w-72 border-r flex flex-col bg-muted/30">
-          <div className="p-3 border-b flex items-center justify-between">
+          <div className="p-3 border-b flex items-center gap-2">
             <NewConversationDialog />
+            <NewGroupDialog />
           </div>
           <ConversationList />
         </div>

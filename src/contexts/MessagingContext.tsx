@@ -7,13 +7,17 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { Dm } from '@xmtp/browser-sdk'
+import type { Conversation } from '@/hooks/useConversations'
 
 interface MessagingContextValue {
-  selectedConversation: Dm | null
-  selectConversation: (conversation: Dm | null) => void
+  selectedConversation: Conversation | null
+  selectConversation: (conversation: Conversation | null) => void
+  conversationType: 'dm' | 'group' | null
+  setConversationType: (type: 'dm' | 'group' | null) => void
   peerAddress: string | null
   setPeerAddress: (address: string | null) => void
+  groupName: string | null
+  setGroupName: (name: string | null) => void
 }
 
 const MessagingContext = createContext<MessagingContextValue | null>(null)
@@ -23,16 +27,22 @@ interface MessagingProviderProps {
 }
 
 export function MessagingProvider({ children }: MessagingProviderProps) {
-  const [selectedConversation, setSelectedConversation] = useState<Dm | null>(null)
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
+  const [conversationType, setConversationType] = useState<'dm' | 'group' | null>(null)
   const [peerAddress, setPeerAddress] = useState<string | null>(null)
+  const [groupName, setGroupName] = useState<string | null>(null)
 
   return (
     <MessagingContext.Provider
       value={{
         selectedConversation,
         selectConversation: setSelectedConversation,
+        conversationType,
+        setConversationType,
         peerAddress,
         setPeerAddress,
+        groupName,
+        setGroupName,
       }}
     >
       {children}

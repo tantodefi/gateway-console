@@ -3,7 +3,7 @@ import { useMessaging } from '@/contexts/MessagingContext'
 import { useXMTP } from '@/contexts/XMTPContext'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Loader2, MessageSquare, RefreshCw } from 'lucide-react'
+import { Loader2, MessageSquare, Users, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 function truncateAddress(address: string | null): string {
@@ -30,6 +30,8 @@ interface ConversationItemProps {
 }
 
 function ConversationItem({ conversation, isSelected, onSelect }: ConversationItemProps) {
+  const isGroup = conversation.type === 'group'
+
   return (
     <button
       onClick={onSelect}
@@ -40,23 +42,39 @@ function ConversationItem({ conversation, isSelected, onSelect }: ConversationIt
       )}
     >
       <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <MessageSquare className="h-5 w-5 text-primary" />
+        <div className={cn(
+          'flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center',
+          isGroup ? 'bg-purple-500/10' : 'bg-primary/10'
+        )}>
+          {isGroup ? (
+            <Users className="h-5 w-5 text-purple-500" />
+          ) : (
+            <MessageSquare className="h-5 w-5 text-primary" />
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <span className="font-medium text-sm truncate">
-              {truncateAddress(conversation.peerAddress)}
+              {isGroup
+                ? (conversation.name || 'Unnamed Group')
+                : truncateAddress(conversation.peerAddress)}
             </span>
             <span className="text-xs text-muted-foreground flex-shrink-0">
               {formatTime(conversation.lastMessageTime)}
             </span>
           </div>
-          {conversation.lastMessage && (
-            <p className="text-sm text-muted-foreground truncate mt-0.5">
-              {conversation.lastMessage}
-            </p>
-          )}
+          <div className="flex items-center gap-2">
+            {isGroup && (
+              <span className="text-xs text-muted-foreground">
+                {conversation.memberCount} members
+              </span>
+            )}
+            {conversation.lastMessage && (
+              <p className="text-sm text-muted-foreground truncate mt-0.5">
+                {conversation.lastMessage}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </button>
@@ -66,7 +84,13 @@ function ConversationItem({ conversation, isSelected, onSelect }: ConversationIt
 export function ConversationList() {
   const { client } = useXMTP()
   const { conversations, isLoading, refresh } = useConversations()
-  const { selectedConversation, selectConversation, setPeerAddress } = useMessaging()
+  const {
+    selectedConversation,
+    selectConversation,
+    setConversationType,
+    setPeerAddress,
+    setGroupName,
+  } = useMessaging()
 
   if (!client) {
     return (
@@ -86,7 +110,14 @@ export function ConversationList() {
 
   const handleSelect = (conv: ConversationData) => {
     selectConversation(conv.conversation)
-    setPeerAddress(conv.peerAddress)
+    setConversationType(conv.type)
+    if (conv.type === 'dm') {
+      setPeerAddress(conv.peerAddress)
+      setGroupName(null)
+    } else {
+      setPeerAddress(null)
+      setGroupName(conv.name)
+    }
   }
 
   return (

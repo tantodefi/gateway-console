@@ -2,16 +2,29 @@
  * Hooks for managing XMTP conversations and messages
  */
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Client, IdentifierKind, type Dm, type DecodedMessage } from '@xmtp/browser-sdk'
+import {
+  Client,
+  IdentifierKind,
+  type Dm,
+  type Group,
+  type DecodedMessage,
+  type CreateGroupOptions,
+} from '@xmtp/browser-sdk'
 import { useXMTP } from '@/contexts/XMTPContext'
+
+// Union type for DM or Group conversations
+export type Conversation = Dm | Group
 
 export interface ConversationData {
   id: string
-  peerInboxId: string
-  peerAddress: string | null
+  type: 'dm' | 'group'
+  name: string | null
+  peerInboxId: string | null // For DMs
+  peerAddress: string | null // For DMs
+  memberCount: number // For groups
   lastMessage: string | null
   lastMessageTime: Date | null
-  conversation: Dm
+  conversation: Conversation
 }
 
 /**
@@ -39,7 +52,30 @@ export function useCanMessage() {
     }
   }, [])
 
-  return { checkCanMessage, isChecking, error }
+  /**
+   * Check multiple addresses at once
+   */
+  const checkCanMessageMultiple = useCallback(async (addresses: string[]): Promise<Map<string, boolean>> => {
+    setIsChecking(true)
+    setError(null)
+
+    try {
+      const identifiers = addresses.map(addr => ({
+        identifier: addr.toLowerCase(),
+        identifierKind: IdentifierKind.Ethereum,
+      }))
+      const result = await Client.canMessage(identifiers)
+      return result
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error('Failed to check reachability')
+      setError(err)
+      return new Map()
+    } finally {
+      setIsChecking(false)
+    }
+  }, [])
+
+  return { checkCanMessage, checkCanMessageMultiple, isChecking, error }
 }
 
 /**
@@ -74,11 +110,44 @@ export function useGetInboxId() {
     }
   }, [client])
 
-  return { getInboxId, isLoading, error }
+  /**
+   * Get inbox IDs for multiple addresses
+   */
+  const getInboxIds = useCallback(async (addresses: string[]): Promise<Map<string, string>> => {
+    if (!client) {
+      setError(new Error('XMTP client not initialized'))
+      return new Map()
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const results = new Map<string, string>()
+      for (const address of addresses) {
+        const inboxId = await client.fetchInboxIdByIdentifier({
+          identifier: address.toLowerCase(),
+          identifierKind: IdentifierKind.Ethereum,
+        })
+        if (inboxId) {
+          results.set(address.toLowerCase(), inboxId)
+        }
+      }
+      return results
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error('Failed to get inbox IDs')
+      setError(err)
+      return new Map()
+    } finally {
+      setIsLoading(false)
+    }
+  }, [client])
+
+  return { getInboxId, getInboxIds, isLoading, error }
 }
 
 /**
- * List all DM conversations
+ * List all conversations (DMs and Groups)
  */
 export function useConversations() {
   const { client } = useXMTP()
@@ -96,39 +165,62 @@ export function useConversations() {
       // Sync conversations first
       await client.conversations.sync()
 
-      // List all DMs
+      // List all DMs and Groups
       const dms = await client.conversations.listDms()
+      const groups = await client.conversations.listGroups()
 
-      // Map to our data structure
-      const convData: ConversationData[] = await Promise.all(
+      // Map DMs to our data structure
+      const dmData: ConversationData[] = await Promise.all(
         dms.map(async (dm) => {
-          // Get the peer's inbox ID (the other participant)
           const members = await dm.members()
           const peer = members.find(m => m.inboxId !== client.inboxId)
-
-          // Get last message
           const messages = await dm.messages({ limit: 1n })
           const lastMsg = messages[0]
 
           return {
             id: dm.id,
-            peerInboxId: peer?.inboxId ?? '',
+            type: 'dm' as const,
+            name: null,
+            peerInboxId: peer?.inboxId ?? null,
             peerAddress: peer?.accountIdentifiers[0]?.identifier ?? null,
-            lastMessage: lastMsg?.content as string ?? null,
+            memberCount: 2,
+            lastMessage: typeof lastMsg?.content === 'string' ? lastMsg.content : null,
             lastMessageTime: lastMsg?.sentAtNs ? new Date(Number(lastMsg.sentAtNs) / 1_000_000) : null,
             conversation: dm,
           }
         })
       )
 
-      // Sort by last message time (newest first)
-      convData.sort((a, b) => {
+      // Map Groups to our data structure
+      const groupData: ConversationData[] = await Promise.all(
+        groups.map(async (group) => {
+          const members = await group.members()
+          const messages = await group.messages({ limit: 1n })
+          const lastMsg = messages[0]
+
+          return {
+            id: group.id,
+            type: 'group' as const,
+            name: group.name ?? null,
+            peerInboxId: null,
+            peerAddress: null,
+            memberCount: members.length,
+            lastMessage: typeof lastMsg?.content === 'string' ? lastMsg.content : null,
+            lastMessageTime: lastMsg?.sentAtNs ? new Date(Number(lastMsg.sentAtNs) / 1_000_000) : null,
+            conversation: group,
+          }
+        })
+      )
+
+      // Combine and sort by last message time (newest first)
+      const allConversations = [...dmData, ...groupData]
+      allConversations.sort((a, b) => {
         if (!a.lastMessageTime) return 1
         if (!b.lastMessageTime) return -1
         return b.lastMessageTime.getTime() - a.lastMessageTime.getTime()
       })
 
-      setConversations(convData)
+      setConversations(allConversations)
     } catch (e) {
       const err = e instanceof Error ? e : new Error('Failed to load conversations')
       console.error('Error loading conversations:', err)
@@ -184,9 +276,50 @@ export function useCreateDm() {
 }
 
 /**
- * Hook for messages in a specific conversation
+ * Create a group conversation
  */
-export function useMessages(conversation: Dm | null) {
+export function useCreateGroup() {
+  const { client } = useXMTP()
+  const [isCreating, setIsCreating] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+
+  const createGroup = useCallback(async (
+    memberInboxIds: string[],
+    options?: CreateGroupOptions
+  ): Promise<Group | null> => {
+    if (!client) {
+      setError(new Error('XMTP client not initialized'))
+      return null
+    }
+
+    if (memberInboxIds.length === 0) {
+      setError(new Error('At least one member required'))
+      return null
+    }
+
+    setIsCreating(true)
+    setError(null)
+
+    try {
+      const group = await client.conversations.createGroup(memberInboxIds, options)
+      return group
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error('Failed to create group')
+      console.error('Error creating group:', err)
+      setError(err)
+      return null
+    } finally {
+      setIsCreating(false)
+    }
+  }, [client])
+
+  return { createGroup, isCreating, error }
+}
+
+/**
+ * Hook for messages in a specific conversation (DM or Group)
+ */
+export function useMessages(conversation: Conversation | null) {
   const [messages, setMessages] = useState<DecodedMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
@@ -252,13 +385,13 @@ export function useMessages(conversation: Dm | null) {
 }
 
 /**
- * Send a message to a conversation
+ * Send a message to a conversation (DM or Group)
  */
 export function useSendMessage() {
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const sendMessage = useCallback(async (conversation: Dm, content: string): Promise<boolean> => {
+  const sendMessage = useCallback(async (conversation: Conversation, content: string): Promise<boolean> => {
     if (!conversation) {
       setError(new Error('No conversation selected'))
       return false
