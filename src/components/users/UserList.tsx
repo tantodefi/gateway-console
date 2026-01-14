@@ -1,9 +1,22 @@
+import { useEffect } from 'react'
 import { useUsers } from '@/hooks/useUsers'
+import { useXMTP } from '@/contexts'
 import { UserCard } from './UserCard'
 import { AddUserDialog } from './AddUserDialog'
+import { XMTPStatus } from '@/components/xmtp'
 
 export function UserList() {
-  const { users, activeUserId, createUser, deleteUser, selectUser } = useUsers()
+  const { users, activeUser, activeUserId, createUser, deleteUser, selectUser } = useUsers()
+  const { initializeClient, disconnect, activeUserId: xmtpActiveUserId } = useXMTP()
+
+  // Initialize XMTP client when active user changes
+  useEffect(() => {
+    if (activeUser && activeUser.id !== xmtpActiveUserId) {
+      initializeClient(activeUser)
+    } else if (!activeUser && xmtpActiveUserId) {
+      disconnect()
+    }
+  }, [activeUser, xmtpActiveUserId, initializeClient, disconnect])
 
   return (
     <div className="w-64 border-r h-full p-4 flex flex-col gap-4">
@@ -28,6 +41,10 @@ export function UserList() {
       </div>
 
       <AddUserDialog onAddUser={createUser} />
+
+      <div className="pt-2 border-t">
+        <XMTPStatus />
+      </div>
     </div>
   )
 }

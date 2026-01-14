@@ -72,8 +72,15 @@ const client = await Client.create(signer, {
 - [ ] Handles connection errors gracefully
 - [ ] Client persists conversations across sessions
 ## Done summary
-TBD
+Created XMTP client lifecycle management with per-user OPFS isolation.
 
+Key accomplishments:
+- Created createEphemeralSigner utility for XMTP from private keys
+- Created XMTPContext with client lifecycle management
+- Implemented per-user OPFS database isolation using user UUID
+- Added XMTPStatus component showing connection state
+- Integrated user selection with XMTP client initialization
+- Client auto-connects when user is selected, disconnects when deselected
 ## Evidence
 - Commits:
 - Tests:
