@@ -1,0 +1,16 @@
+{
+  "assignee": null,
+  "claim_note": "",
+  "claimed_at": null,
+  "created_at": "2026-01-14T03:59:27.573827Z",
+  "depends_on": [
+    "fn-1.7"
+  ],
+  "epic": "fn-1",
+  "id": "fn-1.8",
+  "priority": null,
+  "spec_path": ".flow/tasks/fn-1.8.md",
+  "status": "todo",
+  "title": "DM Messaging & ENS Resolution",
+  "updated_at": "2026-01-14T04:45:00.000000Z"
+}
