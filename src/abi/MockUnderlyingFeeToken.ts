@@ -1,4 +1,4 @@
-// Simplified ABI - only functions needed for faucet
+// Simplified ABI - functions needed for faucet and permit
 export const MockUnderlyingFeeTokenAbi = [
   {
     type: 'function',
@@ -29,6 +29,27 @@ export const MockUnderlyingFeeTokenAbi = [
     name: 'symbol',
     inputs: [],
     outputs: [{ name: '', type: 'string', internalType: 'string' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'name',
+    inputs: [],
+    outputs: [{ name: '', type: 'string', internalType: 'string' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'nonces',
+    inputs: [{ name: 'owner', type: 'address', internalType: 'address' }],
+    outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'DOMAIN_SEPARATOR',
+    inputs: [],
+    outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
     stateMutability: 'view',
   },
 ] as const

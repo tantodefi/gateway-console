@@ -55,8 +55,15 @@ writeContract({
 - [ ] Handles signature rejection gracefully
 - [ ] Validates amount <= available balance
 ## Done summary
-TBD
+Implemented deposit flow with EIP-2612 permit signature for gasless approval.
 
+Key accomplishments:
+- Created DepositSplitter ABI for depositFromUnderlyingWithPermit
+- Created permit signing utility with EIP-712 typed data
+- Created useDeposit hook with permit signing flow
+- Created DepositDialog with amount input and all UI states
+- Deposits go to gateway's PayerRegistry for messaging balance
+- Integrated into main app with Faucet and Deposit buttons
 ## Evidence
 - Commits:
 - Tests:

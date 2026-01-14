@@ -1,6 +1,7 @@
 import { WalletButton } from '@/components/wallet'
 import { UserList } from '@/components/users'
 import { FaucetDialog } from '@/components/faucet'
+import { DepositDialog } from '@/components/deposit'
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           </p>
           <div className="flex gap-2">
             <FaucetDialog />
+            <DepositDialog />
           </div>
           <p className="text-sm text-muted-foreground mt-4">
             0 messages available
