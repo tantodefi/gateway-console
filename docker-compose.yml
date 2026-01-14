@@ -1,15 +1,31 @@
 # Docker Compose for local development with XMTP Gateway
-# Usage: docker compose up gateway
+# Usage: docker compose up -d
 #
-# For Railway deployment, use the Docker image directly:
-#   xmtp/xmtpd-gateway:main
+# First time setup:
+#   git clone https://github.com/xmtp/gateway-service-example.git gateway-service
+#
+# Then run: docker compose up -d
 
 services:
-  gateway:
-    image: xmtp/xmtpd-gateway:main
+  redis:
+    image: redis:latest
     ports:
-      - "5050:5050"
-      - "5055:5055"
+      - "6777:6777"
+    command: redis-server --port 6777
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: ./gateway-service
+      dockerfile: Dockerfile
+    depends_on:
+      - redis
+    ports:
+      - "5050:5872"
     env_file:
       - .env.local
+    environment:
+      - XMTPD_REDIS_URL=redis://redis:6777
+      - XMTPD_API_PORT=5872
+      - XMTPD_CONTRACTS_ENVIRONMENT=testnet-staging
     restart: unless-stopped

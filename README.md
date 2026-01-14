@@ -31,16 +31,25 @@ cast wallet new
 ```
 
 Edit `.env.local` and set:
-- `PAYER_PRIVATE_KEY` - Your generated private key
+- `XMTPD_PAYER_PRIVATE_KEY` - Your generated private key
 - `VITE_GATEWAY_PAYER_ADDRESS` - The address derived from your private key
+- `XMTPD_SETTLEMENT_CHAIN_RPC_URL` / `XMTPD_SETTLEMENT_CHAIN_WSS_URL` - Base Sepolia RPC (get from Alchemy)
 
-### 3. Start the Gateway
+### 3. Clone and start the Gateway
+
+First, clone the gateway service:
+
+```bash
+git clone https://github.com/xmtp/gateway-service-example.git gateway-service
+```
+
+Then start the gateway (builds on first run):
 
 ```bash
 docker-compose up -d
 ```
 
-This runs the XMTP Gateway on `http://localhost:5050`.
+This runs the XMTP Gateway on `http://localhost:5050` (proxied from port 5872).
 
 ### 4. Start the frontend
 
