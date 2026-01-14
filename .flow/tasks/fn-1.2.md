@@ -43,8 +43,15 @@ const config = createConfig({
 - [ ] Connection persists on page refresh
 - [ ] Prompts to switch network if not on Base Sepolia
 ## Done summary
-TBD
+Implemented wallet connection UI using wagmi v2.
 
+Key accomplishments:
+- Created WalletProvider with wagmi and react-query setup
+- Created ConnectWallet component for MetaMask and WalletConnect
+- Created WalletStatus showing address, network, and disconnect
+- Created WalletButton that switches between connect/status states
+- Network switching prompts to Base Sepolia if wrong network
+- Updated App.tsx and main.tsx to use wallet components
 ## Evidence
 - Commits:
 - Tests:

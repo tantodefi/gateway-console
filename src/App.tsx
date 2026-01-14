@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { WalletButton } from '@/components/wallet'
 
 function App() {
   return (
@@ -7,9 +8,9 @@ function App() {
       <p className="text-muted-foreground">
         Learn how XMTP messaging fees work
       </p>
-      <div className="flex gap-2">
-        <Button>Connect Wallet</Button>
-        <Button variant="outline">Get Test Funds</Button>
+      <WalletButton />
+      <div className="flex gap-2 mt-4">
+        <Button variant="outline" disabled>Get Test Funds</Button>
       </div>
       <p className="text-sm text-muted-foreground mt-8">
         0 messages available
