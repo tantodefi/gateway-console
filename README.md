@@ -92,7 +92,7 @@ See `.env.example` for all available environment variables.
 
 | Variable | Description |
 |----------|-------------|
-| `PAYER_PRIVATE_KEY` | Private key for the payer wallet |
+| `XMTPD_PAYER_PRIVATE_KEY` | Private key for the payer wallet |
 
 ## How Messaging Fees Work
 
