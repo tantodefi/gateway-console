@@ -85,14 +85,12 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
       // Create signer from user's private key
       const signer = createEphemeralSigner(user.privateKey)
 
-      // Get gateway URL from environment
-      const apiUrl = import.meta.env.VITE_GATEWAY_URL as string | undefined
-
       // Create new XMTP client
       // Use user.id for dbPath to ensure separate OPFS database per user
+      // Note: Gateway URL is separate - it's only for message publishing subsidies
+      // The client connects to the XMTP network directly using the 'dev' environment
       const newClient = await Client.create(signer, {
-        env: 'dev', // testnet environment
-        ...(apiUrl && { apiUrl }),
+        env: 'dev', // XMTP testnet environment
         dbPath: `xmtp-mwt-${user.id}`, // Separate DB per user using UUID
         appVersion: 'message-with-tokens/0.1.0',
         loggingLevel: import.meta.env.DEV ? LogLevel.Debug : LogLevel.Warn,
