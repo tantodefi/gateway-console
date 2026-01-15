@@ -28,6 +28,13 @@ import { cn } from '@/lib/utils'
 function DeveloperSidebar() {
   return (
     <>
+      {/* Explainer */}
+      <div className="p-3 border-b border-zinc-800/50">
+        <p className="text-xs text-zinc-400 leading-relaxed">
+          XMTP uses an "apps pay" model—your app covers messaging costs, not your users. Fund your payer wallet, then send test messages to see fees in action.
+        </p>
+      </div>
+
       {/* Step 1: Fund App */}
       <div className="p-3 border-b border-zinc-800/50 space-y-2.5">
         <div className="flex items-center gap-2.5">
