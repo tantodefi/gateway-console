@@ -84,7 +84,7 @@ function ConversationItem({ conversation, isSelected, onSelect }: ConversationIt
               {formatTime(conversation.lastMessageTime)}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground truncate mt-0.5">
+          <p className="text-sm text-muted-foreground truncate break-all mt-0.5">
             {conversation.lastMessage || (isGroup ? `${conversation.memberCount} members` : 'No messages yet')}
           </p>
         </div>
