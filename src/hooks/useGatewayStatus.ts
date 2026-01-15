@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { GATEWAY_URL } from '@/lib/constants'
 
 export type GatewayStatus = 'connected' | 'disconnected' | 'checking' | 'unconfigured'
@@ -12,14 +12,19 @@ export function useGatewayStatus() {
     GATEWAY_URL ? 'checking' : 'unconfigured'
   )
   const [lastChecked, setLastChecked] = useState<Date | null>(null)
+  const consecutiveFailures = useRef(0)
 
-  const checkGateway = useCallback(async () => {
+  const checkGateway = useCallback(async (isBackgroundCheck = false) => {
     if (!GATEWAY_URL) {
       setStatus('unconfigured')
       return
     }
 
-    setStatus('checking')
+    // Show checking state unless this is a background re-check while already connected
+    // (disconnected state should show spinner to indicate reconnection attempt)
+    setStatus((current) =>
+      isBackgroundCheck && current === 'connected' ? current : 'checking'
+    )
 
     try {
       // The gateway is a gRPC server (HTTP/2 binary protocol), not HTTP/1.1
@@ -51,10 +56,23 @@ export function useGatewayStatus() {
         ws.onclose = handleResult
       })
 
-      setStatus(connected ? 'connected' : 'disconnected')
+      if (connected) {
+        consecutiveFailures.current = 0
+        setStatus('connected')
+      } else {
+        consecutiveFailures.current++
+        // On background checks, require 2+ consecutive failures to avoid flaky UI
+        // On initial/manual checks, show disconnected immediately
+        if (!isBackgroundCheck || consecutiveFailures.current >= 2) {
+          setStatus('disconnected')
+        }
+      }
       setLastChecked(new Date())
     } catch {
-      setStatus('disconnected')
+      consecutiveFailures.current++
+      if (!isBackgroundCheck || consecutiveFailures.current >= 2) {
+        setStatus('disconnected')
+      }
       setLastChecked(new Date())
     }
   }, [])
@@ -63,8 +81,8 @@ export function useGatewayStatus() {
   useEffect(() => {
     checkGateway()
 
-    // Check every 30 seconds
-    const interval = setInterval(checkGateway, 30_000)
+    // Re-check every 30 seconds
+    const interval = setInterval(() => checkGateway(true), 30_000)
     return () => clearInterval(interval)
   }, [checkGateway])
 
