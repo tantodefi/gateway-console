@@ -15,7 +15,7 @@ import { useXMTP } from '@/contexts/XMTPContext'
 import { APP_NAME } from '@/lib/constants'
 import { ArrowDown, ArrowLeft, Menu } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ResponsiveLayoutProvider, useResponsiveLayout, useIsMobile } from '@/hooks/useResponsiveLayout'
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout'
 import { cn } from '@/lib/utils'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
@@ -122,13 +122,12 @@ function MobileHeader() {
 // Main app content - uses responsive layout context
 function AppContent() {
   const { client, isConnecting } = useXMTP()
-  const isMobile = useIsMobile()
-  const { activePanel } = useResponsiveLayout()
+  const { activePanel, isMobile } = useResponsiveLayout()
 
   return (
     <div className="min-h-screen flex flex-col bg-black">
       {/* Mobile Header - shown only on mobile */}
-      <MobileHeader />
+      {isMobile && <MobileHeader />}
 
       {/* Gateway Console Header - hidden on mobile, shown on desktop */}
       <div className="relative px-4 py-2.5 bg-zinc-950 border-b border-zinc-800/50 hidden md:block">
@@ -151,7 +150,7 @@ function AppContent() {
       {/* Main content area */}
       <div className="flex-1 flex min-h-0">
         {/* Developer Context - Left sidebar (hidden on mobile, shown on desktop) */}
-        <div className="hidden md:flex md:w-72 bg-zinc-950 flex-col">
+        <div className="hidden md:flex md:w-72 shrink-0 bg-zinc-950 flex-col">
           <DeveloperSidebar />
         </div>
 
@@ -167,7 +166,7 @@ function AppContent() {
                 "flex flex-col border-r",
                 isMobile
                   ? activePanel === 'conversations' ? 'flex-1' : 'hidden'
-                  : 'w-72'
+                  : 'w-72 shrink-0'
               )}>
                 <div className="p-3 border-b flex items-center justify-between">
                   <h1 className="font-semibold">Conversations</h1>
@@ -198,7 +197,7 @@ function AppContent() {
                 "flex flex-col border-r",
                 isMobile
                   ? activePanel === 'conversations' ? 'flex-1' : 'hidden'
-                  : 'w-72'
+                  : 'w-72 shrink-0'
               )}>
                 <div className="p-3 border-b flex items-center justify-between">
                   <Skeleton className="h-5 w-28" />
@@ -247,13 +246,9 @@ function AppContent() {
   )
 }
 
-// App wrapper with ResponsiveLayoutProvider
+// App component - ResponsiveLayoutProvider is in main.tsx
 function App() {
-  return (
-    <ResponsiveLayoutProvider>
-      <AppContent />
-    </ResponsiveLayoutProvider>
-  )
+  return <AppContent />
 }
 
 export default App
