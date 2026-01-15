@@ -11,14 +11,13 @@ import {
   NewGroupDialog,
   RefreshConversationsButton,
 } from '@/components/messaging'
+import { MobileHeader } from '@/components/layout'
 import { useXMTP } from '@/contexts/XMTPContext'
 import { APP_NAME } from '@/lib/constants'
-import { ArrowDown, ArrowLeft, Menu } from 'lucide-react'
+import { ArrowDown } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout'
 import { cn } from '@/lib/utils'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Button } from '@/components/ui/button'
 
 // Developer sidebar content - extracted for reuse in Sheet
 function DeveloperSidebar() {
@@ -74,51 +73,6 @@ function DeveloperSidebar() {
   )
 }
 
-// Mobile header with back button and menu
-function MobileHeader() {
-  const { activePanel, goBack } = useResponsiveLayout()
-  const showBackButton = activePanel !== 'conversations'
-
-  return (
-    <div className="flex items-center justify-between px-3 py-2 bg-zinc-950 border-b border-zinc-800/50 md:hidden">
-      <div className="flex items-center gap-2">
-        {showBackButton && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={goBack}
-            className="h-9 w-9 text-zinc-400 hover:text-zinc-100"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        )}
-        <div className="flex items-center gap-2">
-          <img src="/x-mark-red.svg" alt="XMTP" className="h-4 w-4" />
-          <span className="text-xs font-mono font-medium uppercase tracking-widest text-zinc-100">
-            {activePanel === 'chat' ? 'Chat' : activePanel === 'settings' ? 'Settings' : 'Messages'}
-          </span>
-        </div>
-      </div>
-      <Sheet>
-        <SheetTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 text-zinc-400 hover:text-zinc-100"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-72 p-0 bg-zinc-950 border-zinc-800">
-          <div className="flex flex-col h-full">
-            <DeveloperSidebar />
-          </div>
-        </SheetContent>
-      </Sheet>
-    </div>
-  )
-}
-
 // Main app content - uses responsive layout context
 function AppContent() {
   const { client, isConnecting } = useXMTP()
@@ -149,7 +103,7 @@ function AppContent() {
   return (
     <div className="min-h-screen flex flex-col bg-black">
       {/* Mobile Header - uses CSS md:hidden for visibility, always rendered */}
-      <MobileHeader />
+      <MobileHeader menuContent={<DeveloperSidebar />} />
 
       {/* Gateway Console Header - hidden on mobile, shown on desktop */}
       <div className="relative px-4 py-2.5 bg-zinc-950 border-b border-zinc-800/50 hidden md:block">

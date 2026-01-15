@@ -47,9 +47,16 @@ Create a MobileHeader component shown on mobile viewports that provides:
 - [ ] Touch targets are minimum 44px
 - [ ] `npm run typecheck` passes
 ## Done summary
-TBD
+- Created MobileHeader component at /src/components/layout/MobileHeader.tsx
+- Extracted inline MobileHeader from App.tsx into standalone reusable component
+- Increased touch targets to 44px (h-11 w-11) for accessibility compliance
 
+- Provides back navigation when viewing chat/settings panels
+- Makes developer sidebar accessible via Sheet menu on mobile
+
+- npm run typecheck passes
+- npm run build passes
 ## Evidence
-- Commits:
-- Tests:
+- Commits: d06e1a692e08abc36ec5ee8891116a1a4ca14610
+- Tests: npm run typecheck, npm run build
 - PRs:
