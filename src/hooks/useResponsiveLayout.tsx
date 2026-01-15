@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react"
 import { useMediaQuery } from "@mantine/hooks"
 
 // Mobile breakpoint - matches Tailwind's md: breakpoint
@@ -6,25 +6,32 @@ const MOBILE_BREAKPOINT = "(max-width: 767px)"
 
 /**
  * Returns true when viewport is less than 768px (mobile)
- * SSR-safe: defaults to false (desktop) on first render
+ * Defaults to false (desktop) on initial render for consistency
  */
 export function useIsMobile(): boolean {
-  // useMediaQuery returns undefined during SSR/initial render
-  // We default to false (desktop) for SSR safety
-  const isMobile = useMediaQuery(MOBILE_BREAKPOINT, false)
+  const isMobile = useMediaQuery(MOBILE_BREAKPOINT, false, { getInitialValueInEffect: true })
   return isMobile ?? false
 }
 
 // Panel types for mobile navigation
 export type ActivePanel = "conversations" | "chat" | "settings"
 
+// History state shape for browser navigation
+interface HistoryState {
+  panel: ActivePanel
+  topic: string | null
+}
+
+// Internal state for tracking panel navigation
 interface ResponsiveLayoutState {
   activePanel: ActivePanel
   selectedConversationTopic: string | null
-  previousPanel: ActivePanel | null
 }
 
-interface ResponsiveLayoutContextValue extends ResponsiveLayoutState {
+// Public context value - does not expose internal implementation details
+interface ResponsiveLayoutContextValue {
+  activePanel: ActivePanel
+  selectedConversationTopic: string | null
   isMobile: boolean
   showConversations: () => void
   showChat: (topic: string) => void
@@ -40,30 +47,84 @@ interface ResponsiveLayoutProviderProps {
 
 export function ResponsiveLayoutProvider({ children }: ResponsiveLayoutProviderProps) {
   const isMobile = useIsMobile()
+  const isInitialized = useRef(false)
+  const isPopstateNavigation = useRef(false)
 
   const [state, setState] = useState<ResponsiveLayoutState>({
     activePanel: "conversations",
     selectedConversationTopic: null,
-    previousPanel: null,
   })
+
+  // Initialize history state on mount
+  useEffect(() => {
+    if (isInitialized.current) return
+    isInitialized.current = true
+
+    // Seed initial history state
+    const historyState: HistoryState = {
+      panel: state.activePanel,
+      topic: state.selectedConversationTopic,
+    }
+    window.history.replaceState(historyState, "")
+  }, [state.activePanel, state.selectedConversationTopic])
+
+  // Handle browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      const historyState = event.state as HistoryState | null
+
+      if (historyState) {
+        isPopstateNavigation.current = true
+        setState({
+          activePanel: historyState.panel,
+          selectedConversationTopic: historyState.topic,
+        })
+      } else {
+        // Fallback to conversations if no state
+        isPopstateNavigation.current = true
+        setState({
+          activePanel: "conversations",
+          selectedConversationTopic: null,
+        })
+      }
+    }
+
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [])
+
+  // Push history state when panel changes (except for popstate-triggered changes)
+  useEffect(() => {
+    // Skip if this change was triggered by popstate
+    if (isPopstateNavigation.current) {
+      isPopstateNavigation.current = false
+      return
+    }
+
+    // Only push history on mobile and after initialization
+    if (!isMobile || !isInitialized.current) return
+
+    const historyState: HistoryState = {
+      panel: state.activePanel,
+      topic: state.selectedConversationTopic,
+    }
+    window.history.pushState(historyState, "")
+  }, [isMobile, state.activePanel, state.selectedConversationTopic])
 
   // Navigate to conversation list
   const showConversations = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
+    setState({
       activePanel: "conversations",
-      previousPanel: prev.activePanel,
-    }))
+      selectedConversationTopic: null,
+    })
   }, [])
 
   // Navigate to chat view with topic
   const showChat = useCallback((topic: string) => {
-    setState((prev) => ({
-      ...prev,
+    setState({
       activePanel: "chat",
       selectedConversationTopic: topic,
-      previousPanel: prev.activePanel,
-    }))
+    })
   }, [])
 
   // Navigate to settings/wallet panel
@@ -71,45 +132,26 @@ export function ResponsiveLayoutProvider({ children }: ResponsiveLayoutProviderP
     setState((prev) => ({
       ...prev,
       activePanel: "settings",
-      previousPanel: prev.activePanel,
     }))
   }, [])
 
-  // Return to previous panel (or conversations if no previous)
+  // Return to previous panel using browser history on mobile
   const goBack = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      activePanel: prev.previousPanel ?? "conversations",
-      previousPanel: null,
-    }))
-  }, [])
-
-  // Handle browser back button on mobile
-  useEffect(() => {
-    if (!isMobile) return
-
-    const handlePopState = () => {
-      // On back button, return to conversations if not already there
-      if (state.activePanel !== "conversations") {
-        goBack()
-      }
+    if (isMobile) {
+      // Use browser history for proper back navigation
+      window.history.back()
+    } else {
+      // On desktop, just return to conversations
+      setState({
+        activePanel: "conversations",
+        selectedConversationTopic: null,
+      })
     }
-
-    window.addEventListener("popstate", handlePopState)
-    return () => window.removeEventListener("popstate", handlePopState)
-  }, [isMobile, state.activePanel, goBack])
-
-  // Push state when navigating away from conversations on mobile
-  useEffect(() => {
-    if (!isMobile) return
-
-    if (state.activePanel !== "conversations" && state.previousPanel === "conversations") {
-      window.history.pushState({ panel: state.activePanel }, "")
-    }
-  }, [isMobile, state.activePanel, state.previousPanel])
+  }, [isMobile])
 
   const value: ResponsiveLayoutContextValue = {
-    ...state,
+    activePanel: state.activePanel,
+    selectedConversationTopic: state.selectedConversationTopic,
     isMobile,
     showConversations,
     showChat,
