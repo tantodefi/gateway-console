@@ -31,15 +31,12 @@ export function FaucetDialog() {
 
   const isWrongNetwork = chainId !== baseSepolia.id
 
-  // Reset status when dialog opens
+  // Reset status when dialog opens (only on open transition, not on status change)
   useEffect(() => {
-    if (open && status !== 'idle') {
-      // Only reset if it's a terminal state
-      if (status === 'success' || status === 'error') {
-        reset()
-      }
+    if (open) {
+      reset()
     }
-  }, [open, status, reset])
+  }, [open, reset])
 
   const handleMint = () => {
     if (!address) return
@@ -141,8 +138,14 @@ export function FaucetDialog() {
           </p>
         </div>
         <Button onClick={handleMint} disabled={isPending} className="w-full">
-          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Mint Test Funds
+          {isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Minting...
+            </>
+          ) : (
+            'Mint Test Funds'
+          )}
         </Button>
       </div>
     )
@@ -155,7 +158,7 @@ export function FaucetDialog() {
           variant="outline"
           disabled={!isConnected}
           size="sm"
-          className="w-full h-8 text-xs border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+          className="w-full h-8 text-xs border-zinc-300 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 active:bg-zinc-200 disabled:text-zinc-400 disabled:border-zinc-200"
         >
           <Coins className="h-3.5 w-3.5 mr-1.5" />
           Get Test mUSD

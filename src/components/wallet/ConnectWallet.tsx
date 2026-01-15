@@ -16,7 +16,7 @@ export function ConnectWallet() {
           onClick={() => connect({ connector: injectedConnector })}
           disabled={isPending}
           size="sm"
-          className="flex-1 h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+          className="flex-1 h-8 text-xs bg-zinc-100 hover:bg-white active:bg-zinc-200 text-zinc-900"
         >
           <Wallet className="h-3.5 w-3.5 mr-1.5" />
           {isPending ? 'Connecting...' : 'Connect'}

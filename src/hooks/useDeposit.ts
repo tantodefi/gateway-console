@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   useAccount,
   useWalletClient,
@@ -122,16 +122,20 @@ export function useDeposit() {
     [address, walletClient, balance, writeContract]
   )
 
-  // Track success state
-  if (isSuccess && status === 'confirming') {
-    setStatus('success')
-    refetchBalance()
-  }
-
   // Track confirming state
-  if (isConfirming && status === 'pending') {
-    setStatus('confirming')
-  }
+  useEffect(() => {
+    if (isConfirming && status === 'pending') {
+      setStatus('confirming')
+    }
+  }, [isConfirming, status])
+
+  // Track success state
+  useEffect(() => {
+    if (isSuccess && status === 'confirming') {
+      setStatus('success')
+      refetchBalance()
+    }
+  }, [isSuccess, status, refetchBalance])
 
   const reset = useCallback(() => {
     setStatus('idle')

@@ -59,8 +59,8 @@ export function MessageCostBadge({ message, compact = false, className }: Messag
                 <span>Storage ({messageBytes} bytes × 60 days):</span>
                 <span>{formatMicroCost(costResult.breakdown.storageFee)}</span>
               </div>
-              <div className="flex justify-between gap-4 pt-1 border-t font-medium text-foreground">
-                <span>Total (with gas overhead):</span>
+              <div className="flex justify-between gap-4 pt-1 border-t border-white/10 font-medium text-white">
+                <span>Total:</span>
                 <span>{costResult.formattedCost}</span>
               </div>
             </div>

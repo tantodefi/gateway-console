@@ -1,4 +1,5 @@
 import { X } from 'lucide-react'
+import { CopyableAddress } from '@/components/ui/copyable-address'
 import type { EphemeralUser } from '@/types/user'
 
 interface UserCardProps {
@@ -6,10 +7,6 @@ interface UserCardProps {
   isActive: boolean
   onSelect: () => void
   onDelete: () => void
-}
-
-function truncateAddress(address: string): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
 // Generate a simple avatar color from address
@@ -39,16 +36,16 @@ function getAvatarColor(address: string): string {
 export function UserCard({ user, isActive, onSelect, onDelete }: UserCardProps) {
   return (
     <div
-      className={`group flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-all ${
+      className={`group flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-all duration-150 ${
         isActive
-          ? 'bg-zinc-800 ring-1 ring-emerald-500/50'
-          : 'hover:bg-zinc-800/50'
+          ? 'bg-zinc-800/80 ring-1 ring-zinc-500/40'
+          : 'hover:bg-zinc-800/40'
       }`}
       onClick={onSelect}
     >
       {/* Avatar */}
       <div
-        className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0 ${getAvatarColor(
+        className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 shadow-sm ${getAvatarColor(
           user.address
         )}`}
       >
@@ -56,16 +53,14 @@ export function UserCard({ user, isActive, onSelect, onDelete }: UserCardProps) 
       </div>
 
       {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-zinc-200 truncate">{user.name}</div>
-        <div className="text-[10px] text-zinc-500 font-mono truncate">
-          {truncateAddress(user.address)}
-        </div>
+      <div className="flex-1 min-w-0 flex flex-col items-start">
+        <div className="text-sm font-medium text-zinc-300 truncate">{user.name}</div>
+        <CopyableAddress address={user.address} className="text-[10px] text-zinc-600" />
       </div>
 
       {/* Delete */}
       <button
-        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 text-zinc-500 hover:text-red-400 transition-all"
+        className="opacity-0 group-hover:opacity-100 p-1 rounded text-zinc-600 hover:bg-red-500/20 hover:text-red-400 active:bg-red-500/30 active:text-red-300 active:scale-95 transition-all duration-150"
         onClick={(e) => {
           e.stopPropagation()
           if (confirm(`Delete user "${user.name}"?`)) {

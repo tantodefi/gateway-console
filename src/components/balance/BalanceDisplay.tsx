@@ -1,11 +1,8 @@
 import { usePayerBalance } from '@/hooks/usePayerBalance'
 import { GATEWAY_PAYER_ADDRESS } from '@/lib/constants'
+import { CopyableAddress } from '@/components/ui/copyable-address'
 import { Loader2, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-function truncateAddress(address: string): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`
-}
 
 export function BalanceDisplay() {
   const {
@@ -51,7 +48,7 @@ export function BalanceDisplay() {
       {/* App wallet address */}
       <div className="flex items-center justify-between">
         <span className="text-xs text-zinc-500 font-mono">Address</span>
-        <span className="text-[10px] text-zinc-400 font-mono">{truncateAddress(GATEWAY_PAYER_ADDRESS)}</span>
+        <CopyableAddress address={GATEWAY_PAYER_ADDRESS} className="text-[10px] text-zinc-400" />
       </div>
 
       {/* Messages meter */}

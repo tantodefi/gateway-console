@@ -1,11 +1,8 @@
 import { useAccount, useDisconnect, useChainId, useSwitchChain } from 'wagmi'
 import { baseSepolia } from 'wagmi/chains'
 import { Button } from '@/components/ui/button'
+import { CopyableAddress } from '@/components/ui/copyable-address'
 import { Wallet, X } from 'lucide-react'
-
-function truncateAddress(address: string): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`
-}
 
 export function WalletStatus() {
   const { address, isConnected } = useAccount()
@@ -36,10 +33,8 @@ export function WalletStatus() {
   return (
     <div className="flex items-center justify-between gap-2">
       <div className="flex items-center gap-2 min-w-0">
-        <Wallet className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
-        <span className="font-mono text-xs text-zinc-300 truncate">
-          {truncateAddress(address)}
-        </span>
+        <Wallet className="h-3.5 w-3.5 text-zinc-400 flex-shrink-0" />
+        <CopyableAddress address={address} className="text-xs text-zinc-300" />
         <span className="text-[10px] text-zinc-600 font-mono bg-zinc-800 px-1.5 py-0.5 rounded flex-shrink-0">
           Base Sepolia
         </span>

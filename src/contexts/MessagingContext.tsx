@@ -5,9 +5,11 @@ import {
   createContext,
   useContext,
   useState,
+  useEffect,
   type ReactNode,
 } from 'react'
 import type { Conversation } from '@/hooks/useConversations'
+import { useXMTP } from '@/contexts/XMTPContext'
 
 interface MessagingContextValue {
   selectedConversation: Conversation | null
@@ -29,11 +31,22 @@ interface MessagingProviderProps {
 }
 
 export function MessagingProvider({ children }: MessagingProviderProps) {
+  const { client } = useXMTP()
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
   const [conversationType, setConversationType] = useState<'dm' | 'group' | null>(null)
   const [peerAddress, setPeerAddress] = useState<string | null>(null)
   const [peerAddresses, setPeerAddresses] = useState<string[]>([])
   const [groupName, setGroupName] = useState<string | null>(null)
+
+  // Clear selection when XMTP client changes (user switch)
+  // The old conversation object becomes stale when client changes
+  useEffect(() => {
+    setSelectedConversation(null)
+    setConversationType(null)
+    setPeerAddress(null)
+    setPeerAddresses([])
+    setGroupName(null)
+  }, [client])
 
   return (
     <MessagingContext.Provider

@@ -213,7 +213,7 @@ export function NewGroupDialog() {
         <DialogHeader>
           <DialogTitle>Create Group</DialogTitle>
           <DialogDescription>
-            Create a group chat with multiple members.
+            Start a group chat. You can add more members later.
           </DialogDescription>
         </DialogHeader>
 
@@ -277,7 +277,7 @@ export function NewGroupDialog() {
                     </span>
                     <button
                       onClick={() => removeMember(member.displayName)}
-                      className="hover:bg-muted rounded p-0.5"
+                      className="rounded p-0.5 hover:bg-muted active:bg-muted/80 active:scale-90 transition-all"
                     >
                       <X className="h-3 w-3" />
                     </button>

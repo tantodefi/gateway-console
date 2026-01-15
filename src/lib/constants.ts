@@ -55,6 +55,11 @@ export const FEE_CONSTANTS = {
   picodollarsPerDollar: 1_000_000_000_000n,
 } as const
 
+// Gateway configuration
+export const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL as string | undefined
+export const APP_NAME = import.meta.env.VITE_APP_NAME as string | undefined
+export const CONTRACTS_ENVIRONMENT = import.meta.env.VITE_CONTRACTS_ENVIRONMENT as string | undefined
+
 // localStorage keys
 export const STORAGE_KEYS = {
   users: 'MWT_USERS',

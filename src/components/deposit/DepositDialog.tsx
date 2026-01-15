@@ -44,13 +44,13 @@ export function DepositDialog() {
   const maxAmount = parseFloat(formattedBalance)
   const isValidAmount = parsedAmount > 0 && parsedAmount <= maxAmount
 
-  // Reset when dialog opens
+  // Reset when dialog opens (only on open transition, not on status change)
   useEffect(() => {
-    if (open && (status === 'success' || status === 'error')) {
+    if (open) {
       reset()
       setAmount('')
     }
-  }, [open, status, reset])
+  }, [open, reset])
 
   const handleDeposit = () => {
     if (!isValidAmount) return
@@ -108,10 +108,10 @@ export function DepositDialog() {
         <div className="text-center py-4 space-y-3">
           <PenLine className="h-12 w-12 mx-auto text-primary" />
           <p className="text-muted-foreground">
-            Sign the permit in your wallet...
+            Sign the approval in your wallet...
           </p>
           <p className="text-xs text-muted-foreground">
-            This gasless signature approves the deposit
+            This signature authorizes the deposit
           </p>
         </div>
       )
@@ -198,8 +198,14 @@ export function DepositDialog() {
           disabled={!isValidAmount || isPending}
           className="w-full"
         >
-          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Deposit
+          {isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Depositing...
+            </>
+          ) : (
+            'Deposit'
+          )}
         </Button>
 
         <p className="text-xs text-muted-foreground text-center">
@@ -216,7 +222,7 @@ export function DepositDialog() {
           variant="outline"
           disabled={!isConnected || !hasPayerAddress}
           size="sm"
-          className="w-full h-8 text-xs border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+          className="w-full h-8 text-xs border-zinc-300 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 active:bg-zinc-200 disabled:text-zinc-400 disabled:border-zinc-200"
         >
           <ArrowDownToLine className="h-3.5 w-3.5 mr-1.5" />
           Deposit to App

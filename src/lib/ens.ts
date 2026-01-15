@@ -70,3 +70,41 @@ export async function getENSName(address: Address): Promise<string | null> {
     return null
   }
 }
+
+/**
+ * Get ENS avatar for an ENS name
+ * @param name - ENS name (e.g., "vitalik.eth")
+ * @returns Avatar URL or null if not found
+ */
+export async function getENSAvatar(name: string): Promise<string | null> {
+  try {
+    const normalizedName = normalize(name)
+    const avatar = await mainnetClient.getEnsAvatar({ name: normalizedName })
+    return avatar
+  } catch (error) {
+    console.error('ENS avatar resolution error:', error)
+    return null
+  }
+}
+
+/**
+ * Get ENS name and avatar for an address
+ * @param address - Ethereum address
+ * @returns Object with name and avatar, both nullable
+ */
+export async function getENSProfile(address: Address): Promise<{
+  name: string | null
+  avatar: string | null
+}> {
+  try {
+    const name = await mainnetClient.getEnsName({ address })
+    if (!name) {
+      return { name: null, avatar: null }
+    }
+    const avatar = await mainnetClient.getEnsAvatar({ name })
+    return { name, avatar }
+  } catch (error) {
+    console.error('ENS profile resolution error:', error)
+    return { name: null, avatar: null }
+  }
+}

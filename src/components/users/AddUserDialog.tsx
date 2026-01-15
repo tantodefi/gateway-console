@@ -30,14 +30,12 @@ export function AddUserDialog({ onAddUser }: AddUserDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full h-8 text-xs border-zinc-700 border-dashed text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 hover:border-zinc-600"
-        >
-          <UserPlus className="h-3.5 w-3.5 mr-1.5" />
-          Add User
-        </Button>
+        <button className="w-full flex items-center gap-2.5 p-2 rounded-lg text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800/30 transition-all duration-150 cursor-pointer">
+          <div className="w-7 h-7 rounded-full border border-dashed border-zinc-700 flex items-center justify-center">
+            <UserPlus className="h-3.5 w-3.5" />
+          </div>
+          <span className="text-xs">Add ephemeral user</span>
+        </button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -53,7 +51,7 @@ export function AddUserDialog({ onAddUser }: AddUserDialogProps) {
             />
           </div>
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={!name.trim()}>

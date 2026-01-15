@@ -16,4 +16,14 @@ export default defineConfig({
   worker: {
     format: 'es',
   },
+  server: {
+    proxy: {
+      // Proxy gateway requests to avoid CORS issues
+      '/gateway': {
+        target: 'http://localhost:5050',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/gateway/, ''),
+      },
+    },
+  },
 })

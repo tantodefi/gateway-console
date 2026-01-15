@@ -1,21 +1,16 @@
 import { useConversations, type ConversationData } from '@/hooks/useConversations'
 import { useMessaging } from '@/contexts/MessagingContext'
 import { useXMTP } from '@/contexts/XMTPContext'
+import { useFirstENSName } from '@/hooks/useENSName'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Loader2, MessageSquare, Users, RefreshCw } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { User, Users, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 function truncateAddress(address: string | null): string {
   if (!address) return 'Unknown'
   return `${address.slice(0, 6)}...${address.slice(-4)}`
-}
-
-function formatPeerAddresses(addresses: string[]): string {
-  if (addresses.length === 0) return 'Unknown'
-  if (addresses.length === 1) return truncateAddress(addresses[0])
-  // Show first address + count of others
-  return `${truncateAddress(addresses[0])} +${addresses.length - 1}`
 }
 
 function formatTime(date: Date | null): string {
@@ -38,6 +33,21 @@ interface ConversationItemProps {
 
 function ConversationItem({ conversation, isSelected, onSelect }: ConversationItemProps) {
   const isGroup = conversation.type === 'group'
+  const { ensName, ensAvatar } = useFirstENSName(
+    isGroup ? [] : conversation.peerAddresses
+  )
+
+  // Format display name for DMs - prefer ENS, fall back to truncated address
+  const formatDisplayName = () => {
+    if (isGroup) return conversation.name || 'Unnamed Group'
+
+    // If we have an ENS name, show it
+    if (ensName) return ensName
+
+    // Fall back to truncated address
+    if (conversation.peerAddresses.length === 0) return 'Unknown'
+    return truncateAddress(conversation.peerAddresses[0])
+  }
 
   return (
     <button
@@ -49,48 +59,58 @@ function ConversationItem({ conversation, isSelected, onSelect }: ConversationIt
       )}
     >
       <div className="flex items-start gap-3">
-        <div className={cn(
-          'flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center',
-          isGroup ? 'bg-purple-500/10' : 'bg-primary/10'
-        )}>
-          {isGroup ? (
+        {isGroup ? (
+          <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-purple-500/10">
             <Users className="h-5 w-5 text-purple-500" />
-          ) : (
-            <MessageSquare className="h-5 w-5 text-primary" />
-          )}
-        </div>
+          </div>
+        ) : ensAvatar ? (
+          <img
+            src={ensAvatar}
+            alt=""
+            className="flex-shrink-0 w-10 h-10 rounded-full object-cover"
+          />
+        ) : (
+          <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-primary/10">
+            <User className="h-5 w-5 text-primary" />
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <span className="font-medium text-sm truncate">
-              {isGroup
-                ? (conversation.name || 'Unnamed Group')
-                : formatPeerAddresses(conversation.peerAddresses)}
+              {formatDisplayName()}
             </span>
             <span className="text-xs text-muted-foreground flex-shrink-0">
               {formatTime(conversation.lastMessageTime)}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            {isGroup && (
-              <span className="text-xs text-muted-foreground">
-                {conversation.memberCount} members
-              </span>
-            )}
-            {conversation.lastMessage && (
-              <p className="text-sm text-muted-foreground truncate mt-0.5">
-                {conversation.lastMessage}
-              </p>
-            )}
-          </div>
+          <p className="text-sm text-muted-foreground truncate mt-0.5">
+            {conversation.lastMessage || (isGroup ? `${conversation.memberCount} members` : 'No messages yet')}
+          </p>
         </div>
       </div>
     </button>
   )
 }
 
+export function RefreshConversationsButton() {
+  const { isLoading, refresh } = useConversations()
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={refresh}
+      disabled={isLoading}
+      className="h-8 w-8"
+    >
+      <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
+    </Button>
+  )
+}
+
 export function ConversationList() {
   const { client } = useXMTP()
-  const { conversations, isLoading, refresh } = useConversations()
+  const { conversations, isLoading } = useConversations()
   const {
     selectedConversation,
     selectConversation,
@@ -110,8 +130,10 @@ export function ConversationList() {
 
   if (isLoading && conversations.length === 0) {
     return (
-      <div className="p-4 flex items-center justify-center">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      <div className="flex-1 p-2 space-y-2">
+        <Skeleton className="h-14 w-full rounded-lg" />
+        <Skeleton className="h-14 w-full rounded-lg" />
+        <Skeleton className="h-14 w-full rounded-lg" />
       </div>
     )
   }
@@ -131,20 +153,7 @@ export function ConversationList() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-2 border-b flex items-center justify-between">
-        <span className="text-sm font-medium px-2">Conversations</span>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={refresh}
-          disabled={isLoading}
-          className="h-8 w-8"
-        >
-          <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
-        </Button>
-      </div>
-
+    <div className="flex-1 flex flex-col">
       {conversations.length === 0 ? (
         <div className="p-4 text-center text-muted-foreground text-sm">
           No conversations yet

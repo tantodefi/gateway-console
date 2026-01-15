@@ -5,15 +5,44 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import {
   Client,
   IdentifierKind,
+  ConsentState,
   type Dm,
   type Group,
   type DecodedMessage,
   type CreateGroupOptions,
+  type AsyncStreamProxy,
 } from '@xmtp/browser-sdk'
 import { useXMTP } from '@/contexts/XMTPContext'
 
+// Stream connection status
+export type StreamStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'failed'
+
+// Stream configuration
+const STREAM_CONFIG = {
+  retryAttempts: 10,
+  retryDelay: 15000, // 15 seconds
+  consentStates: [ConsentState.Allowed, ConsentState.Unknown], // Stream allowed and unknown, not denied (spam)
+}
+
 // Union type for DM or Group conversations
 export type Conversation = Dm | Group
+
+/**
+ * Extract displayable text from a message content for conversation preview
+ * Returns null for non-text content (group updates, etc.) so they're skipped
+ */
+function getMessageText(content: unknown): string | null {
+  if (typeof content === 'string') return content
+  if (content && typeof content === 'object') {
+    // Skip GroupUpdated messages in preview - we only want text messages
+    if ('initiatedByInboxId' in content) return null
+    // Try to get text property if it exists
+    if ('text' in content && typeof (content as { text: unknown }).text === 'string') {
+      return (content as { text: string }).text
+    }
+  }
+  return null
+}
 
 export interface ConversationData {
   id: string
@@ -151,10 +180,14 @@ export function useGetInboxId() {
  * List all conversations (DMs and Groups)
  */
 export function useConversations() {
-  const { client } = useXMTP()
+  const { client, setIsLoadingConversations } = useXMTP()
   const [conversations, setConversations] = useState<ConversationData[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  const [streamStatus, setStreamStatus] = useState<StreamStatus>('disconnected')
+
+  // Store stream reference for proper cleanup
+  const conversationStreamRef = useRef<AsyncStreamProxy<Dm | Group> | null>(null)
 
   const loadConversations = useCallback(async () => {
     if (!client) return
@@ -163,25 +196,50 @@ export function useConversations() {
     setError(null)
 
     try {
-      // Sync conversations first
-      await client.conversations.sync()
+      // Use syncAll to sync welcomes AND messages for all conversations
+      // This ensures lastMessage data is accurate
+      // Filter by consent state to avoid syncing spam
+      await client.conversations.syncAll(STREAM_CONFIG.consentStates)
 
-      // List all DMs and Groups
-      const dms = await client.conversations.listDms()
-      const groups = await client.conversations.listGroups()
+      // List all DMs and Groups, filtered by consent state
+      const dms = await client.conversations.listDms({
+        consentStates: STREAM_CONFIG.consentStates,
+      })
+      const groups = await client.conversations.listGroups({
+        consentStates: STREAM_CONFIG.consentStates,
+      })
 
       // Map DMs to our data structure
       const dmData: ConversationData[] = await Promise.all(
         dms.map(async (dm) => {
           const members = await dm.members()
           const peer = members.find(m => m.inboxId !== client.inboxId)
-          const messages = await dm.messages({ limit: 1n })
-          const lastMsg = messages[0]
+          // Get recent messages and find the last TEXT message (skip group updates)
+          const messages = await dm.messages({ limit: 10n })
+          const lastTextMsg = [...messages].reverse().find(m => getMessageText(m.content) !== null)
 
           // Get all Ethereum addresses for the peer
           const peerAddresses = peer?.accountIdentifiers
             ?.filter(id => id.identifierKind === IdentifierKind.Ethereum)
             ?.map(id => id.identifier) ?? []
+
+          // Debug logging for Unknown conversations
+          if (peerAddresses.length === 0) {
+            console.warn('[Conversations] DM with no peer addresses:', {
+              dmId: dm.id,
+              memberCount: members.length,
+              members: members.map(m => ({
+                inboxId: m.inboxId,
+                identifierCount: m.accountIdentifiers?.length ?? 0,
+                identifiers: m.accountIdentifiers,
+              })),
+              clientInboxId: client.inboxId,
+              peer: peer ? {
+                inboxId: peer.inboxId,
+                identifiers: peer.accountIdentifiers,
+              } : null,
+            })
+          }
 
           return {
             id: dm.id,
@@ -191,8 +249,8 @@ export function useConversations() {
             peerAddress: peerAddresses[0] ?? null,
             peerAddresses,
             memberCount: 2,
-            lastMessage: typeof lastMsg?.content === 'string' ? lastMsg.content : null,
-            lastMessageTime: lastMsg?.sentAtNs ? new Date(Number(lastMsg.sentAtNs) / 1_000_000) : null,
+            lastMessage: getMessageText(lastTextMsg?.content),
+            lastMessageTime: lastTextMsg?.sentAtNs ? new Date(Number(lastTextMsg.sentAtNs) / 1_000_000) : null,
             conversation: dm,
           }
         })
@@ -202,8 +260,9 @@ export function useConversations() {
       const groupData: ConversationData[] = await Promise.all(
         groups.map(async (group) => {
           const members = await group.members()
-          const messages = await group.messages({ limit: 1n })
-          const lastMsg = messages[0]
+          // Get recent messages and find the last TEXT message (skip group updates)
+          const messages = await group.messages({ limit: 10n })
+          const lastTextMsg = [...messages].reverse().find(m => getMessageText(m.content) !== null)
 
           return {
             id: group.id,
@@ -213,8 +272,8 @@ export function useConversations() {
             peerAddress: null,
             peerAddresses: [],
             memberCount: members.length,
-            lastMessage: typeof lastMsg?.content === 'string' ? lastMsg.content : null,
-            lastMessageTime: lastMsg?.sentAtNs ? new Date(Number(lastMsg.sentAtNs) / 1_000_000) : null,
+            lastMessage: getMessageText(lastTextMsg?.content),
+            lastMessageTime: lastTextMsg?.sentAtNs ? new Date(Number(lastTextMsg.sentAtNs) / 1_000_000) : null,
             conversation: group,
           }
         })
@@ -235,19 +294,108 @@ export function useConversations() {
       setError(err)
     } finally {
       setIsLoading(false)
+      setIsLoadingConversations(false)
     }
-  }, [client])
+  }, [client, setIsLoadingConversations])
 
-  // Load conversations when client changes
+  // Load conversations and start streaming when client changes
   useEffect(() => {
-    if (client) {
-      loadConversations()
-    } else {
+    if (!client) {
       setConversations([])
+      setStreamStatus('disconnected')
+      return
+    }
+
+    loadConversations()
+
+    // Start streaming new conversations with proper callbacks
+    let isMounted = true
+    setStreamStatus('connecting')
+
+    const startStream = async () => {
+      try {
+        const stream = await client.conversations.stream({
+          // Disable automatic sync since we already called syncAll
+          disableSync: true,
+
+          // Retry configuration for resilience
+          retryAttempts: STREAM_CONFIG.retryAttempts,
+          retryDelay: STREAM_CONFIG.retryDelay,
+          retryOnFail: true,
+
+          // Stream callbacks for monitoring
+          onValue: (_conversation) => {
+            if (!isMounted) return
+            // Reload all conversations to get proper metadata
+            loadConversations()
+          },
+          onError: (error) => {
+            console.error('[Stream] Conversation stream error:', error)
+          },
+          onFail: () => {
+            console.error('[Stream] Conversation stream failed after retries')
+            if (isMounted) {
+              setStreamStatus('failed')
+            }
+          },
+          onRestart: () => {
+            console.log('[Stream] Conversation stream restarted')
+            if (isMounted) {
+              setStreamStatus('connected')
+            }
+          },
+          onRetry: (attempt, maxAttempts) => {
+            console.log(`[Stream] Conversation stream retry ${attempt}/${maxAttempts}`)
+            if (isMounted) {
+              setStreamStatus('reconnecting')
+            }
+          },
+        })
+
+        // Store ref for cleanup
+        conversationStreamRef.current = stream
+        if (isMounted) {
+          setStreamStatus('connected')
+        }
+
+        // Keep the stream alive (callbacks handle values, but we iterate to keep it open)
+        // Wrap in try-catch to handle client closure during user switch
+        try {
+          for await (const _ of stream) {
+            if (!isMounted) break
+          }
+        } catch (e) {
+          // Stream may error when client is closed during user switch - this is expected
+          if (isMounted) {
+            console.log('[Stream] Conversation stream ended:', e)
+          }
+        }
+      } catch (e) {
+        // Only log as error if we're still mounted (not during user switch cleanup)
+        if (isMounted) {
+          console.error('[Stream] Conversation stream setup error:', e)
+          setStreamStatus('failed')
+        }
+      }
+    }
+
+    startStream()
+
+    // Cleanup: properly close the stream
+    // Note: During user switch, client may already be closed, so handle errors gracefully
+    return () => {
+      isMounted = false
+      if (conversationStreamRef.current) {
+        conversationStreamRef.current.return().catch(() => {
+          // Silently ignore - stream may already be closed if client was closed first
+        })
+        conversationStreamRef.current = null
+      }
+      setStreamStatus('disconnected')
     }
   }, [client, loadConversations])
 
-  return { conversations, isLoading, error, refresh: loadConversations }
+  return { conversations, isLoading, error, streamStatus, refresh: loadConversations }
 }
 
 /**
@@ -329,9 +477,13 @@ export function useCreateGroup() {
  */
 export function useMessages(conversation: Conversation | null) {
   const [messages, setMessages] = useState<DecodedMessage[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  // Only start in loading state if we have a conversation to load
+  const [isLoading, setIsLoading] = useState(!!conversation)
   const [error, setError] = useState<Error | null>(null)
-  const streamRef = useRef<AsyncIterable<DecodedMessage> | null>(null)
+  const [streamStatus, setStreamStatus] = useState<StreamStatus>('disconnected')
+
+  // Store stream reference for proper cleanup
+  const streamRef = useRef<AsyncStreamProxy<DecodedMessage> | null>(null)
 
   const loadMessages = useCallback(async () => {
     if (!conversation) {
@@ -362,40 +514,105 @@ export function useMessages(conversation: Conversation | null) {
   useEffect(() => {
     if (!conversation) {
       setMessages([])
+      setStreamStatus('disconnected')
       return
     }
 
     loadMessages()
 
-    // Start streaming new messages
+    // Start streaming new messages with proper callbacks
+    let isMounted = true
+    setStreamStatus('connecting')
+
     const startStream = async () => {
       try {
-        const stream = await conversation.stream()
-        streamRef.current = stream
+        const stream = await conversation.stream({
+          // Disable automatic sync since we already called conversation.sync()
+          disableSync: true,
 
-        for await (const message of stream) {
-          // Deduplicate - only add if message doesn't already exist
-          setMessages(prev => {
-            if (prev.some(m => m.id === message.id)) {
-              return prev
+          // Retry configuration for resilience
+          retryAttempts: STREAM_CONFIG.retryAttempts,
+          retryDelay: STREAM_CONFIG.retryDelay,
+          retryOnFail: true,
+
+          // Stream callbacks for monitoring
+          onValue: (message) => {
+            if (!isMounted) return
+            // Deduplicate - only add if message doesn't already exist
+            setMessages(prev => {
+              if (prev.some(m => m.id === message.id)) {
+                return prev
+              }
+              return [...prev, message]
+            })
+          },
+          onError: (error) => {
+            console.error('[Stream] Message stream error:', error)
+          },
+          onFail: () => {
+            console.error('[Stream] Message stream failed after retries')
+            if (isMounted) {
+              setStreamStatus('failed')
             }
-            return [...prev, message]
-          })
+          },
+          onRestart: () => {
+            console.log('[Stream] Message stream restarted')
+            if (isMounted) {
+              setStreamStatus('connected')
+            }
+          },
+          onRetry: (attempt, maxAttempts) => {
+            console.log(`[Stream] Message stream retry ${attempt}/${maxAttempts}`)
+            if (isMounted) {
+              setStreamStatus('reconnecting')
+            }
+          },
+        })
+
+        // Store ref for cleanup
+        streamRef.current = stream
+        if (isMounted) {
+          setStreamStatus('connected')
+        }
+
+        // Keep the stream alive (callbacks handle the messages)
+        // Wrap in try-catch to handle client closure during user switch
+        try {
+          for await (const _ of stream) {
+            if (!isMounted) break
+          }
+        } catch (e) {
+          // Stream may error when client is closed during user switch - this is expected
+          if (isMounted) {
+            console.log('[Stream] Message stream ended:', e)
+          }
         }
       } catch (e) {
-        console.error('Message stream error:', e)
+        // Only log as error if we're still mounted (not during user switch cleanup)
+        if (isMounted) {
+          console.error('[Stream] Message stream setup error:', e)
+          setStreamStatus('failed')
+        }
       }
     }
 
     startStream()
 
-    // Cleanup stream on unmount or conversation change
+    // Cleanup: properly close the stream
+    // Note: During user switch, client may already be closed, so handle errors gracefully
     return () => {
-      streamRef.current = null
+      isMounted = false
+      if (streamRef.current) {
+        streamRef.current.return().catch(() => {
+          // Silently ignore - stream may already be closed if client was closed first
+        })
+        streamRef.current = null
+      }
+      setStreamStatus('disconnected')
     }
   }, [conversation, loadMessages])
 
-  return { messages, isLoading, error, refresh: loadMessages }
+  return { messages, isLoading, error, streamStatus, refresh: loadMessages }
 }
 
 /**
@@ -433,4 +650,261 @@ export function useSendMessage() {
   }, [])
 
   return { sendMessage, isSending, error }
+}
+
+/**
+ * Global message stream hook - streams all messages across all conversations
+ * This is useful for updating the conversation list with latest messages
+ * without requiring the user to have a conversation open.
+ *
+ * @param onNewMessage - Callback when a new message arrives (optional)
+ * @returns Stream status and control
+ */
+export function useGlobalMessageStream(
+  onNewMessage?: (message: DecodedMessage, conversationId: string) => void
+) {
+  const { client } = useXMTP()
+  const [streamStatus, setStreamStatus] = useState<StreamStatus>('disconnected')
+  const [lastMessage, setLastMessage] = useState<DecodedMessage | null>(null)
+
+  // Store stream reference for proper cleanup
+  const streamRef = useRef<AsyncStreamProxy<DecodedMessage> | null>(null)
+
+  useEffect(() => {
+    if (!client) {
+      setStreamStatus('disconnected')
+      return
+    }
+
+    let isMounted = true
+    setStreamStatus('connecting')
+
+    const startStream = async () => {
+      try {
+        const stream = await client.conversations.streamAllMessages({
+          // Filter by consent state to avoid streaming spam
+          consentStates: STREAM_CONFIG.consentStates,
+
+          // Disable automatic sync - caller should sync before using this hook
+          disableSync: true,
+
+          // Retry configuration for resilience
+          retryAttempts: STREAM_CONFIG.retryAttempts,
+          retryDelay: STREAM_CONFIG.retryDelay,
+          retryOnFail: true,
+
+          // Stream callbacks for monitoring
+          onValue: (message) => {
+            if (!isMounted) return
+
+            setLastMessage(message)
+
+            // Call the callback if provided
+            if (onNewMessage) {
+              onNewMessage(message, message.conversationId)
+            }
+          },
+          onError: (error) => {
+            console.error('[Stream] Global message stream error:', error)
+          },
+          onFail: () => {
+            console.error('[Stream] Global message stream failed after retries')
+            if (isMounted) {
+              setStreamStatus('failed')
+            }
+          },
+          onRestart: () => {
+            console.log('[Stream] Global message stream restarted')
+            if (isMounted) {
+              setStreamStatus('connected')
+            }
+          },
+          onRetry: (attempt, maxAttempts) => {
+            console.log(`[Stream] Global message stream retry ${attempt}/${maxAttempts}`)
+            if (isMounted) {
+              setStreamStatus('reconnecting')
+            }
+          },
+        })
+
+        // Store ref for cleanup
+        streamRef.current = stream
+        if (isMounted) {
+          setStreamStatus('connected')
+        }
+
+        // Keep the stream alive
+        // Wrap in try-catch to handle client closure during user switch
+        try {
+          for await (const _ of stream) {
+            if (!isMounted) break
+          }
+        } catch (e) {
+          // Stream may error when client is closed during user switch - this is expected
+          if (isMounted) {
+            console.log('[Stream] Global message stream ended:', e)
+          }
+        }
+      } catch (e) {
+        // Only log as error if we're still mounted (not during user switch cleanup)
+        if (isMounted) {
+          console.error('[Stream] Global message stream setup error:', e)
+          setStreamStatus('failed')
+        }
+      }
+    }
+
+    startStream()
+
+    // Cleanup: properly close the stream
+    // Note: During user switch, client may already be closed, so handle errors gracefully
+    return () => {
+      isMounted = false
+      if (streamRef.current) {
+        streamRef.current.return().catch(() => {
+          // Silently ignore - stream may already be closed if client was closed first
+        })
+        streamRef.current = null
+      }
+      setStreamStatus('disconnected')
+    }
+  }, [client, onNewMessage])
+
+  return { streamStatus, lastMessage }
+}
+
+/**
+ * Group member information with role
+ */
+export interface GroupMemberInfo {
+  inboxId: string
+  addresses: string[]
+  isAdmin: boolean
+  isSuperAdmin: boolean
+}
+
+/**
+ * Hook for group administration - managing members and roles
+ */
+export function useGroupAdmin(group: Group | null) {
+  const { client } = useXMTP()
+  const [members, setMembers] = useState<GroupMemberInfo[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  // Check current user's permissions
+  const currentUserInboxId = client?.inboxId ?? null
+
+  // With default "All_Members" policy: all members can add, only admins can remove
+  const canAddMembers = !!group
+  const canRemoveMembers = isAdmin || isSuperAdmin
+
+  const loadMembers = useCallback(async () => {
+    if (!group) {
+      setMembers([])
+      setIsSuperAdmin(false)
+      setIsAdmin(false)
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      await group.sync()
+      const memberList = await group.members()
+
+      // Check current user's admin status
+      if (currentUserInboxId) {
+        setIsSuperAdmin(await group.isSuperAdmin(currentUserInboxId))
+        setIsAdmin(await group.isAdmin(currentUserInboxId))
+      }
+
+      // Build member info with admin status
+      const memberInfo: GroupMemberInfo[] = await Promise.all(
+        memberList.map(async (member) => ({
+          inboxId: member.inboxId,
+          addresses: member.accountIdentifiers
+            ?.filter(id => id.identifierKind === IdentifierKind.Ethereum)
+            ?.map(id => id.identifier) ?? [],
+          isAdmin: await group.isAdmin(member.inboxId),
+          isSuperAdmin: await group.isSuperAdmin(member.inboxId),
+        }))
+      )
+
+      setMembers(memberInfo)
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error('Failed to load members')
+      console.error('Error loading group members:', err)
+      setError(err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [group, currentUserInboxId])
+
+  const addMember = useCallback(async (inboxId: string): Promise<boolean> => {
+    if (!group) {
+      setError(new Error('No group selected'))
+      return false
+    }
+
+    setError(null)
+
+    try {
+      await group.addMembers([inboxId])
+      await loadMembers() // Refresh member list
+      return true
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error('Failed to add member')
+      console.error('Error adding member:', err)
+      setError(err)
+      return false
+    }
+  }, [group, loadMembers])
+
+  const removeMember = useCallback(async (inboxId: string): Promise<boolean> => {
+    if (!group) {
+      setError(new Error('No group selected'))
+      return false
+    }
+
+    if (!canRemoveMembers) {
+      setError(new Error('You do not have permission to remove members'))
+      return false
+    }
+
+    setError(null)
+
+    try {
+      await group.removeMembers([inboxId])
+      await loadMembers() // Refresh member list
+      return true
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error('Failed to remove member')
+      console.error('Error removing member:', err)
+      setError(err)
+      return false
+    }
+  }, [group, canRemoveMembers, loadMembers])
+
+  // Load members when group changes
+  useEffect(() => {
+    loadMembers()
+  }, [loadMembers])
+
+  return {
+    members,
+    isLoading,
+    error,
+    currentUserInboxId,
+    isSuperAdmin,
+    isAdmin,
+    canAddMembers,
+    canRemoveMembers,
+    addMember,
+    removeMember,
+    refresh: loadMembers,
+  }
 }

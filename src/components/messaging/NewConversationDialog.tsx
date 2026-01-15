@@ -207,19 +207,7 @@ export function NewConversationDialog() {
               </div>
             </div>
 
-            {/* Resolved address display */}
-            {resolvedAddress && isENSName(recipient) && (
-              <p className="text-xs text-muted-foreground">
-                Resolved to: {resolvedAddress}
-              </p>
-            )}
-
-            {/* Status messages */}
-            {status === 'reachable' && (
-              <p className="text-xs text-green-600">
-                This address can receive XMTP messages
-              </p>
-            )}
+            {/* Error messages only */}
             {errorMessage && (
               <p className="text-xs text-destructive">{errorMessage}</p>
             )}

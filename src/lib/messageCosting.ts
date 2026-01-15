@@ -134,18 +134,11 @@ export function calculateMessageCost(
   // Calculate storage component: storageFee * bytes * days
   const storageComponent = FALLBACK_STORAGE_FEE * BigInt(messageBytes) * BigInt(storageDays)
 
-  // Calculate base cost: messageFee + storageComponent + congestionFee
-  const baseCostPicodollars = FALLBACK_MESSAGE_FEE + storageComponent + FALLBACK_CONGESTION_FEE
-
-  // Apply gas overhead estimate multiplier
-  const totalCostPicodollars = BigInt(
-    Math.round(Number(baseCostPicodollars) * FALLBACK_GAS_OVERHEAD_ESTIMATE)
-  )
-
   // Convert to dollars
   const messageFee = Number(FALLBACK_MESSAGE_FEE) / PICODOLLAR_SCALE
   const storageFee = Number(storageComponent) / PICODOLLAR_SCALE
-  const total = Number(totalCostPicodollars) / PICODOLLAR_SCALE
+  // Total is just message fee + storage (gas overhead is charged separately)
+  const total = messageFee + storageFee
 
   // Format cost - use more decimal places for small amounts
   const formattedCost = formatMicroCost(total)
