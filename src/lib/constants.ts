@@ -56,9 +56,15 @@ export const FEE_CONSTANTS = {
 } as const
 
 // Gateway configuration
-export const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL as string | undefined
+export const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:5050'
 export const APP_NAME = import.meta.env.VITE_APP_NAME as string | undefined
 export const CONTRACTS_ENVIRONMENT = import.meta.env.VITE_CONTRACTS_ENVIRONMENT as string | undefined
+
+// RPC URLs with sensible defaults
+export const SETTLEMENT_CHAIN_RPC_URL =
+  import.meta.env.VITE_SETTLEMENT_CHAIN_RPC_URL || 'https://sepolia.base.org'
+export const MAINNET_RPC_URL =
+  import.meta.env.VITE_MAINNET_RPC_URL || 'https://eth.llamarpc.com'
 
 // localStorage keys
 export const STORAGE_KEYS = {

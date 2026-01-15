@@ -72,6 +72,26 @@ Open http://localhost:5173 to see the app.
 └─────────────────────────────────────────────────────────────┘
 ```
 
+## Features
+
+- **Direct messaging** - Send 1:1 messages between users
+- **Group messaging** - Create and manage group conversations
+- **Test users** - Generate ephemeral users or use connected wallet
+- **Fee visualization** - See real-time cost per message
+- **Balance tracking** - Monitor payer balance and available messages
+- **Testnet faucet** - Mint mUSD for testing
+- **ENS resolution** - Display ENS names for addresses
+- **Mobile responsive** - Full mobile support with optimized UI
+
+## Tech Stack
+
+- **React 19** + TypeScript
+- **Vite** - Build tool
+- **Tailwind CSS** + shadcn/ui - Styling
+- **XMTP Browser SDK** - Messaging protocol
+- **wagmi** + viem - Ethereum interactions
+- **TanStack Query** - Data fetching
+
 ## Commands
 
 | Command | Description |
@@ -79,6 +99,8 @@ Open http://localhost:5173 to see the app.
 | `npm run dev` | Start development server |
 | `npm run build` | Build for production |
 | `npm run preview` | Preview production build |
+| `npm run typecheck` | Type check TypeScript |
+| `npm run lint` | Run ESLint |
 | `docker-compose up -d` | Start gateway in background |
 | `docker-compose down` | Stop gateway |
 | `docker-compose logs -f` | View gateway logs |
@@ -89,19 +111,26 @@ See `.env.example` for all available environment variables.
 
 ### Frontend (Vite)
 
-| Variable | Description |
-|----------|-------------|
-| `VITE_GATEWAY_URL` | XMTP Gateway URL |
-| `VITE_GATEWAY_PAYER_ADDRESS` | Address that pays for messages |
-| `VITE_SETTLEMENT_CHAIN_RPC_URL` | Base Sepolia RPC |
-| `VITE_MAINNET_RPC_URL` | Mainnet RPC (for ENS) |
-| `VITE_WALLETCONNECT_PROJECT_ID` | WalletConnect project ID |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VITE_GATEWAY_PAYER_ADDRESS` | Yes | Address that pays for messages |
+| `VITE_APP_NAME` | No | App name displayed in header |
+| `VITE_CONTRACTS_ENVIRONMENT` | No | XMTP environment (testnet-staging, testnet, mainnet) |
+| `VITE_GATEWAY_URL` | No | Gateway URL (default: localhost:5050) |
+| `VITE_SETTLEMENT_CHAIN_RPC_URL` | No | Base Sepolia RPC (default: public RPC) |
+| `VITE_MAINNET_RPC_URL` | No | Mainnet RPC for ENS (default: public RPC) |
+| `VITE_WALLETCONNECT_PROJECT_ID` | No | WalletConnect project ID |
 
 ### Gateway (Docker)
 
 | Variable | Description |
 |----------|-------------|
-| `XMTPD_PAYER_PRIVATE_KEY` | Private key for the payer wallet |
+| `XMTPD_CONTRACTS_ENVIRONMENT` | XMTP environment |
+| `XMTPD_PAYER_PRIVATE_KEY` | Private key for payer wallet |
+| `XMTPD_APP_CHAIN_RPC_URL` | XMTP App Chain RPC |
+| `XMTPD_APP_CHAIN_WSS_URL` | XMTP App Chain WebSocket |
+| `XMTPD_SETTLEMENT_CHAIN_RPC_URL` | Base Sepolia RPC |
+| `XMTPD_SETTLEMENT_CHAIN_WSS_URL` | Base Sepolia WebSocket |
 
 ## How Messaging Fees Work
 

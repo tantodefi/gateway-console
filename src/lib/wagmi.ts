@@ -1,6 +1,7 @@
 import { http, createConfig } from 'wagmi'
 import { baseSepolia, mainnet } from 'wagmi/chains'
 import { injected, walletConnect } from 'wagmi/connectors'
+import { SETTLEMENT_CHAIN_RPC_URL, MAINNET_RPC_URL } from './constants'
 
 const walletConnectProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
 
@@ -13,8 +14,8 @@ export const config = createConfig({
       : []),
   ],
   transports: {
-    [baseSepolia.id]: http(import.meta.env.VITE_SETTLEMENT_CHAIN_RPC_URL),
-    [mainnet.id]: http(import.meta.env.VITE_MAINNET_RPC_URL),
+    [baseSepolia.id]: http(SETTLEMENT_CHAIN_RPC_URL),
+    [mainnet.id]: http(MAINNET_RPC_URL),
   },
 })
 
