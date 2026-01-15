@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { useCanMessage, useGetInboxId, useCreateGroup, useConversations } from '@/hooks/useConversations'
 import { useMessaging } from '@/contexts/MessagingContext'
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout'
 import { resolveAddressOrENS, isENSName } from '@/lib/ens'
 import { isAddress } from 'viem'
 import {
@@ -51,6 +52,7 @@ export function NewGroupDialog() {
   const { createGroup } = useCreateGroup()
   const { selectConversation, setConversationType, setGroupName: setContextGroupName } = useMessaging()
   const { refresh } = useConversations()
+  const { showChat } = useResponsiveLayout()
 
   const resetState = () => {
     setGroupName('')
@@ -166,6 +168,9 @@ export function NewGroupDialog() {
       selectConversation(group)
       setConversationType('group')
       setContextGroupName(groupName.trim())
+
+      // Navigate to chat panel (safe to call on desktop too)
+      showChat(group.id)
 
       // Refresh conversation list
       await refresh()

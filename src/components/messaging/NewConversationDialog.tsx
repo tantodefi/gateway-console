@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { useCanMessage, useGetInboxId, useCreateDm } from '@/hooks/useConversations'
 import { useMessaging } from '@/contexts/MessagingContext'
 import { useConversations } from '@/hooks/useConversations'
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout'
 import { resolveAddressOrENS, isENSName } from '@/lib/ens'
 import { isAddress } from 'viem'
 import {
@@ -47,6 +48,7 @@ export function NewConversationDialog() {
   const { createDm } = useCreateDm()
   const { selectConversation, setConversationType, setPeerAddress, setPeerAddresses } = useMessaging()
   const { refresh } = useConversations()
+  const { showChat } = useResponsiveLayout()
 
   const resetState = () => {
     setRecipient('')
@@ -134,6 +136,9 @@ export function NewConversationDialog() {
       setConversationType('dm')
       setPeerAddress(resolvedAddress)
       setPeerAddresses([resolvedAddress])
+
+      // Navigate to chat panel (safe to call on desktop too)
+      showChat(dm.id)
 
       // Refresh conversation list
       await refresh()

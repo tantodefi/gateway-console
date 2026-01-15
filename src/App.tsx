@@ -122,12 +122,34 @@ function MobileHeader() {
 // Main app content - uses responsive layout context
 function AppContent() {
   const { client, isConnecting } = useXMTP()
-  const { activePanel, isMobile } = useResponsiveLayout()
+  const { activePanel } = useResponsiveLayout()
+
+  // Helper to determine if conversation panel should be visible
+  // On mobile: only when activePanel is 'conversations'
+  // On desktop: always visible (md: breakpoint handles this via CSS)
+  const conversationPanelClasses = cn(
+    "flex flex-col border-r",
+    // Mobile: toggle visibility based on activePanel
+    activePanel === 'conversations' ? 'flex' : 'hidden',
+    // Desktop: always show with fixed width
+    "md:flex md:w-72 md:shrink-0"
+  )
+
+  // Helper to determine if chat panel should be visible
+  // On mobile: only when activePanel is 'chat'
+  // On desktop: always visible
+  const chatPanelClasses = cn(
+    "flex flex-col",
+    // Mobile: toggle visibility based on activePanel
+    activePanel === 'chat' ? 'flex flex-1' : 'hidden',
+    // Desktop: always show and take remaining space
+    "md:flex md:flex-1"
+  )
 
   return (
     <div className="min-h-screen flex flex-col bg-black">
-      {/* Mobile Header - shown only on mobile */}
-      {isMobile && <MobileHeader />}
+      {/* Mobile Header - uses CSS md:hidden for visibility, always rendered */}
+      <MobileHeader />
 
       {/* Gateway Console Header - hidden on mobile, shown on desktop */}
       <div className="relative px-4 py-2.5 bg-zinc-950 border-b border-zinc-800/50 hidden md:block">
@@ -155,19 +177,11 @@ function AppContent() {
         </div>
 
         {/* User Context - Main app area with rounded top-left corner on desktop */}
-        <div className={cn(
-          "flex-1 flex flex-col bg-background overflow-hidden",
-          !isMobile && "rounded-tl-xl"
-        )}>
+        <div className="flex-1 flex flex-col bg-background overflow-hidden md:rounded-tl-xl">
           {client ? (
             <div className="flex-1 flex overflow-hidden">
-              {/* Conversation Sidebar - shown based on activePanel on mobile */}
-              <div className={cn(
-                "flex flex-col border-r",
-                isMobile
-                  ? activePanel === 'conversations' ? 'flex-1' : 'hidden'
-                  : 'w-72 shrink-0'
-              )}>
+              {/* Conversation Sidebar - responsive visibility */}
+              <div className={conversationPanelClasses}>
                 <div className="p-3 border-b flex items-center justify-between">
                   <h1 className="font-semibold">Conversations</h1>
                   <div className="flex items-center gap-1">
@@ -179,13 +193,8 @@ function AppContent() {
                 <ConversationList />
               </div>
 
-              {/* Message Area - shown based on activePanel on mobile */}
-              <div className={cn(
-                "flex flex-col",
-                isMobile
-                  ? activePanel === 'chat' ? 'flex-1' : 'hidden'
-                  : 'flex-1'
-              )}>
+              {/* Message Area - responsive visibility */}
+              <div className={chatPanelClasses}>
                 <MessageThread />
                 <MessageInput />
               </div>
@@ -193,12 +202,7 @@ function AppContent() {
           ) : isConnecting ? (
             <div className="flex-1 flex overflow-hidden">
               {/* Conversation Sidebar Skeleton - responsive */}
-              <div className={cn(
-                "flex flex-col border-r",
-                isMobile
-                  ? activePanel === 'conversations' ? 'flex-1' : 'hidden'
-                  : 'w-72 shrink-0'
-              )}>
+              <div className={conversationPanelClasses}>
                 <div className="p-3 border-b flex items-center justify-between">
                   <Skeleton className="h-5 w-28" />
                   <div className="flex items-center gap-1">
@@ -214,12 +218,7 @@ function AppContent() {
               </div>
 
               {/* Message Area Skeleton - responsive */}
-              <div className={cn(
-                "flex flex-col",
-                isMobile
-                  ? activePanel === 'chat' ? 'flex-1' : 'hidden'
-                  : 'flex-1'
-              )}>
+              <div className={chatPanelClasses}>
                 <div className="p-3 border-b">
                   <Skeleton className="h-6 w-32" />
                 </div>

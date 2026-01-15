@@ -120,7 +120,7 @@ export function ConversationList() {
     setPeerAddresses,
     setGroupName,
   } = useMessaging()
-  const { showChat, isMobile } = useResponsiveLayout()
+  const { showChat } = useResponsiveLayout()
 
   if (!client) {
     return (
@@ -152,10 +152,8 @@ export function ConversationList() {
       setPeerAddresses([])
       setGroupName(conv.name)
     }
-    // Navigate to chat view on mobile
-    if (isMobile) {
-      showChat(conv.id)
-    }
+    // Navigate to chat panel (safe to call on desktop too)
+    showChat(conv.id)
   }
 
   return (
