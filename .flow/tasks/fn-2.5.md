@@ -58,9 +58,22 @@ These map to the correct Dialog/Drawer sub-components based on viewport.
 - [ ] No horizontal scroll in any dialog on 320px viewport
 - [ ] `npm run typecheck` passes
 ## Done summary
-TBD
+- What changed:
+  - Created ResponsiveDialog component that switches between Dialog (desktop) and Drawer (mobile)
+  - Updated all 6 dialogs (NewConversationDialog, NewGroupDialog, GroupSettingsDialog, FaucetDialog, DepositDialog, AddUserDialog) to use ResponsiveDialog
+  - Dialogs now appear as scrollable bottom sheets on mobile viewports
 
+- Why:
+  - Improves mobile UX by using touch-friendly bottom sheet pattern
+  - Maintains desktop experience with centered modals
+
+- Verification:
+  - npm run typecheck passes
+  - All dialog components compile correctly
+
+- Follow-ups:
+  - Test on real mobile devices to verify touch interactions
 ## Evidence
-- Commits:
-- Tests:
+- Commits: bb313ef50d6218b2973201780cb93181376af265
+- Tests: npm run typecheck
 - PRs:

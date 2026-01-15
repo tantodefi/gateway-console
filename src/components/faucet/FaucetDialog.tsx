@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react'
 import { useAccount, useSwitchChain } from 'wagmi'
 import { baseSepolia } from 'wagmi/chains'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription,
-} from '@/components/ui/dialog'
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogTrigger,
+  ResponsiveDialogDescription,
+} from '@/components/ui/responsive-dialog'
 import { Button } from '@/components/ui/button'
 import { useMintMusd } from '@/hooks/useMintMusd'
 import { Loader2, CheckCircle2, XCircle, Clock, Coins } from 'lucide-react'
@@ -152,8 +152,8 @@ export function FaucetDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <ResponsiveDialog open={open} onOpenChange={setOpen}>
+      <ResponsiveDialogTrigger asChild>
         <Button
           variant="outline"
           disabled={!isConnected}
@@ -163,16 +163,16 @@ export function FaucetDialog() {
           <Coins className="h-3.5 w-3.5 mr-1.5" />
           Get Test mUSD
         </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Test Faucet</DialogTitle>
-          <DialogDescription>
+      </ResponsiveDialogTrigger>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Test Faucet</ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             Mint {TOKENS.underlyingFeeToken.displaySymbol} tokens to fund your messaging
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
         {renderContent()}
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

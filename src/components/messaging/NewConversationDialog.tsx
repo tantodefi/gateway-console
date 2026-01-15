@@ -1,12 +1,12 @@
 import { useState, useRef } from 'react'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogTrigger,
+} from '@/components/ui/responsive-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -161,24 +161,24 @@ export function NewConversationDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <ResponsiveDialog open={open} onOpenChange={handleOpenChange}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <DialogTrigger asChild>
+          <ResponsiveDialogTrigger asChild>
             <Button variant="outline" size="icon" className="h-8 w-8">
               <MessageSquarePlus className="h-4 w-4" />
             </Button>
-          </DialogTrigger>
+          </ResponsiveDialogTrigger>
         </TooltipTrigger>
         <TooltipContent>New Chat</TooltipContent>
       </Tooltip>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>New Conversation</DialogTitle>
-          <DialogDescription>
+      <ResponsiveDialogContent className="sm:max-w-md">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>New Conversation</ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             Enter an Ethereum address or ENS name to start a conversation.
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
@@ -255,7 +255,7 @@ export function NewConversationDialog() {
             )}
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogTrigger,
+} from '@/components/ui/responsive-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -203,24 +203,24 @@ export function NewGroupDialog() {
   const canCreate = groupName.trim() && reachableCount > 0 && !isCreating
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <ResponsiveDialog open={open} onOpenChange={handleOpenChange}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <DialogTrigger asChild>
+          <ResponsiveDialogTrigger asChild>
             <Button variant="outline" size="icon" className="h-8 w-8">
               <UserPlus className="h-4 w-4" />
             </Button>
-          </DialogTrigger>
+          </ResponsiveDialogTrigger>
         </TooltipTrigger>
         <TooltipContent>New Group</TooltipContent>
       </Tooltip>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Create Group</DialogTitle>
-          <DialogDescription>
+      <ResponsiveDialogContent className="sm:max-w-md">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Create Group</ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             Start a group chat. You can add more members later.
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
 
         <div className="space-y-4 py-4">
           {/* Group Name */}
@@ -319,7 +319,7 @@ export function NewGroupDialog() {
             )}
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

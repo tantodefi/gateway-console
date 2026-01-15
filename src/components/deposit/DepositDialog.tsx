@@ -3,13 +3,13 @@ import { useAccount, useSwitchChain } from 'wagmi'
 import { baseSepolia } from 'wagmi/chains'
 import { formatUnits } from 'viem'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription,
-} from '@/components/ui/dialog'
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogTrigger,
+  ResponsiveDialogDescription,
+} from '@/components/ui/responsive-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useDeposit } from '@/hooks/useDeposit'
@@ -222,8 +222,8 @@ export function DepositDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <ResponsiveDialog open={open} onOpenChange={setOpen}>
+      <ResponsiveDialogTrigger asChild>
         <Button
           variant="outline"
           disabled={!isConnected || !hasPayerAddress}
@@ -233,16 +233,16 @@ export function DepositDialog() {
           <ArrowDownToLine className="h-3.5 w-3.5 mr-1.5" />
           Deposit to App
         </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Deposit Messaging Funds</DialogTitle>
-          <DialogDescription>
+      </ResponsiveDialogTrigger>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Deposit Messaging Funds</ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             Fund your messaging balance with {TOKENS.underlyingFeeToken.displaySymbol}
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
         {renderContent()}
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }
