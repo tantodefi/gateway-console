@@ -55,7 +55,7 @@ function ConversationItem({ conversation, isSelected, onSelect }: ConversationIt
       onClick={onSelect}
       className={cn(
         'w-full p-3 text-left hover:bg-muted/50 transition-colors touch-manipulation',
-        'border-b border-border last:border-b-0 min-h-[64px]',
+        'border-b border-border last:border-b-0 min-h-[64px] md:min-h-0',
         isSelected && 'bg-muted'
       )}
     >
@@ -102,7 +102,7 @@ export function RefreshConversationsButton() {
       size="icon"
       onClick={refresh}
       disabled={isLoading}
-      className="h-11 w-11 min-h-[44px] min-w-[44px] touch-manipulation"
+      className="h-8 w-8 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 touch-manipulation"
     >
       <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
     </Button>

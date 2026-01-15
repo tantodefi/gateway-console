@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { useAccount } from 'wagmi'
 import { useUsers } from '@/hooks/useUsers'
 import { useXMTP, WALLET_USER_ID } from '@/contexts/XMTPContext'
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout'
 import { UserCard } from './UserCard'
 import { ConnectedWalletCard } from './ConnectedWalletCard'
 import { AddUserDialog } from './AddUserDialog'
@@ -11,6 +12,15 @@ export function UserList() {
   const { users, activeUser, activeUserId, createUser, deleteUser, selectUser } = useUsers()
   const { initializeClient, disconnect, activeUserId: xmtpActiveUserId, isConnecting } = useXMTP()
   const { isConnected: isWalletConnected } = useAccount()
+  const { isMobile, showConversations } = useResponsiveLayout()
+
+  // Handle user selection - selects user and navigates to conversations on mobile
+  const handleUserSelect = useCallback((userId: string) => {
+    selectUser(userId)
+    if (isMobile) {
+      showConversations()
+    }
+  }, [selectUser, isMobile, showConversations])
 
   // Sync XMTP client with selected user
   // Wallet selection is handled by ConnectedWalletCard directly
@@ -47,7 +57,7 @@ export function UserList() {
               key={user.id}
               user={user}
               isActive={user.id === activeUserId && xmtpActiveUserId !== WALLET_USER_ID}
-              onSelect={() => selectUser(user.id)}
+              onSelect={() => handleUserSelect(user.id)}
               onDelete={() => deleteUser(user.id)}
             />
           ))

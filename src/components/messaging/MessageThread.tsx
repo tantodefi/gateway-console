@@ -146,7 +146,7 @@ function MessageBubble({ message, isOwn, showSender = false, senderName, memberN
             {messageCost.formattedCost}
           </span>
         </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs">
+        <TooltipContent side={isOwn ? 'left' : 'right'} className="max-w-xs">
           <div className="space-y-1.5 text-xs">
             <p className="font-medium">Message Cost</p>
             <div className="space-y-0.5 text-muted-foreground">
@@ -284,7 +284,7 @@ export function MessageThread() {
               variant="outline"
               size="sm"
               onClick={() => setSettingsOpen(true)}
-              className="min-h-[44px] text-xs touch-manipulation"
+              className="h-7 text-xs"
             >
               <Settings className="h-3.5 w-3.5 mr-1" />
               Manage

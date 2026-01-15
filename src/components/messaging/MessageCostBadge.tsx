@@ -16,13 +16,15 @@ interface MessageCostBadgeProps {
   compact?: boolean
   /** Additional class names */
   className?: string
+  /** Tooltip placement side */
+  tooltipSide?: 'top' | 'bottom' | 'left' | 'right'
 }
 
 /**
  * Displays estimated message cost with breakdown tooltip
  * Uses estimated payload size (text bytes + protocol overhead)
  */
-export function MessageCostBadge({ message, compact = false, className }: MessageCostBadgeProps) {
+export function MessageCostBadge({ message, compact = false, className, tooltipSide = 'top' }: MessageCostBadgeProps) {
   const { costResult, textBytes, payloadBytes } = useMemo(() => {
     const textBytes = getMessageBytes(message)
     const payloadBytes = estimatePayloadSize(message)
@@ -51,7 +53,7 @@ export function MessageCostBadge({ message, compact = false, className }: Messag
             </span>
           </div>
         </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs">
+        <TooltipContent side={tooltipSide} className="max-w-xs">
           <div className="space-y-1.5 text-xs">
             <p className="font-medium">Estimated Message Cost</p>
             <div className="space-y-0.5 text-muted-foreground">

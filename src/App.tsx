@@ -1,3 +1,5 @@
+import { useAccount, useEnsName } from 'wagmi'
+import { mainnet } from 'wagmi/chains'
 import { WalletButton, UserBalance } from '@/components/wallet'
 import { UserList } from '@/components/users'
 import { FaucetDialog } from '@/components/faucet'
@@ -12,8 +14,9 @@ import {
   RefreshConversationsButton,
 } from '@/components/messaging'
 import { MobileHeader } from '@/components/layout'
-import { useXMTP } from '@/contexts/XMTPContext'
+import { useXMTP, WALLET_USER_ID } from '@/contexts/XMTPContext'
 import { useMessaging } from '@/contexts/MessagingContext'
+import { useUsers } from '@/hooks/useUsers'
 import { useENSName } from '@/hooks/useENSName'
 import { APP_NAME } from '@/lib/constants'
 import { ArrowDown } from 'lucide-react'
@@ -34,10 +37,10 @@ function DeveloperSidebar() {
           </span>
         </div>
 
-        {/* Connected Wallet Card */}
+        {/* Your Wallet Card */}
         <div className="bg-gradient-to-b from-zinc-900 to-zinc-900/50 rounded-lg p-3 space-y-2 ring-1 ring-zinc-800/50">
           <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
-            Connected Wallet
+            Your Wallet
           </div>
           <WalletButton />
           <UserBalance />
@@ -82,24 +85,61 @@ function truncateAddress(address: string): string {
 
 // Main app content - uses responsive layout context
 function AppContent() {
-  const { client, isConnecting } = useXMTP()
+  const { client, isConnecting, activeUserId: xmtpActiveUserId } = useXMTP()
   const { activePanel, isMobile } = useResponsiveLayout()
   const { peerAddress, groupName, conversationType } = useMessaging()
+  const { activeUser } = useUsers()
+  const { address: walletAddress } = useAccount()
 
   // Resolve ENS name for DM conversations
-  const { ensName } = useENSName(peerAddress)
+  const { ensName: peerEnsName } = useENSName(peerAddress)
 
-  // Compute mobile header title based on conversation state
-  // Returns undefined for non-chat panels so MobileHeader uses 'Messages' default
-  const getMobileTitle = (): string | undefined => {
-    if (activePanel !== 'chat') return undefined // use default title ('Messages')
-    if (conversationType === 'group' && groupName) return groupName
-    if (conversationType === 'dm') {
-      if (ensName) return ensName
-      if (peerAddress) return truncateAddress(peerAddress)
+  // Resolve ENS name for connected wallet (same as ConnectedWalletCard)
+  const { data: walletEnsName } = useEnsName({
+    address: walletAddress,
+    chainId: mainnet.id,
+  })
+
+  // Get the display name for the active user (who we're "viewing as")
+  const getActiveUserDisplayName = (): string => {
+    if (xmtpActiveUserId === WALLET_USER_ID) {
+      if (walletEnsName) return walletEnsName
+      if (walletAddress) return truncateAddress(walletAddress)
+      return 'Connected Wallet'
     }
-    return undefined // fallback to 'Messages' from MobileHeader
+    if (activeUser) {
+      return activeUser.name
+    }
+    return 'Messages'
   }
+
+  // Compute mobile header title based on panel and conversation state
+  const getMobileTitle = (): string => {
+    // On conversations panel, show who we're viewing as
+    if (activePanel === 'conversations') {
+      return getActiveUserDisplayName()
+    }
+    // On chat panel, show the conversation name
+    if (activePanel === 'chat') {
+      if (conversationType === 'group' && groupName) return groupName
+      if (conversationType === 'dm') {
+        if (peerEnsName) return peerEnsName
+        if (peerAddress) return truncateAddress(peerAddress)
+      }
+    }
+    return 'Messages'
+  }
+
+  // Mobile sidebar panel - shows DeveloperSidebar as main screen on mobile
+  // On mobile: full viewport width when activePanel is 'sidebar'
+  // On desktop: never shown as standalone panel (desktop uses fixed sidebar)
+  const sidebarPanelClasses = cn(
+    "flex flex-col bg-zinc-950 w-full",
+    // Mobile: toggle visibility based on activePanel
+    activePanel === 'sidebar' ? 'flex' : 'hidden',
+    // Desktop: never show as standalone panel
+    "md:hidden"
+  )
 
   // Helper to determine if conversation panel should be visible
   // On mobile: only when activePanel is 'conversations', takes full width
@@ -123,13 +163,16 @@ function AppContent() {
     "md:flex md:flex-1"
   )
 
+  // Only show header padding when not on sidebar (sidebar is full-screen)
+  const showMobileHeaderPadding = isMobile && activePanel !== 'sidebar'
+
   return (
     <div
       className="min-h-screen flex flex-col bg-black"
-      style={isMobile ? { paddingTop: 'var(--mobile-header-height)' } : undefined}
+      style={showMobileHeaderPadding ? { paddingTop: 'var(--mobile-header-height)' } : undefined}
     >
-      {/* Mobile Header - fixed position, conditionally rendered via isMobile */}
-      <MobileHeader menuContent={<DeveloperSidebar />} title={getMobileTitle()} />
+      {/* Mobile Header - only shown when NOT on sidebar panel */}
+      {activePanel !== 'sidebar' && <MobileHeader title={getMobileTitle()} />}
 
       {/* Gateway Console Header - hidden on mobile, shown on desktop */}
       <div className="relative px-4 py-2.5 bg-zinc-950 border-b border-zinc-800/50 hidden md:block">
@@ -151,13 +194,38 @@ function AppContent() {
 
       {/* Main content area */}
       <div className="flex-1 flex min-h-0">
+        {/* Mobile Sidebar Panel - full screen on mobile when activePanel is 'sidebar' */}
+        <div className={sidebarPanelClasses}>
+          {/* Mobile sidebar header */}
+          <div className="relative px-4 py-3 border-b border-zinc-800/50" style={{ paddingTop: 'calc(var(--safe-area-inset-top) + 0.75rem)' }}>
+            <div className="flex items-center gap-2.5">
+              <img src="/x-mark-red.svg" alt="XMTP" className="h-5 w-5" />
+              <span className="text-xs font-mono font-medium uppercase tracking-widest text-zinc-100">
+                Gateway Console
+              </span>
+              {APP_NAME && (
+                <>
+                  <span className="text-zinc-600 text-xs">/</span>
+                  <span className="text-xs text-zinc-400">{APP_NAME}</span>
+                </>
+              )}
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-zinc-500/30 via-zinc-600/10 to-transparent" />
+          </div>
+          <DeveloperSidebar />
+        </div>
+
         {/* Developer Context - Left sidebar (hidden on mobile, shown on desktop) */}
         <div className="hidden md:flex md:w-72 shrink-0 bg-zinc-950 flex-col">
           <DeveloperSidebar />
         </div>
 
         {/* User Context - Main app area with rounded top-left corner on desktop */}
-        <div className="flex-1 flex flex-col bg-background overflow-hidden md:rounded-tl-xl">
+        {/* Hidden on mobile when sidebar is active */}
+        <div className={cn(
+          "flex-1 flex flex-col bg-background overflow-hidden md:rounded-tl-xl",
+          activePanel === 'sidebar' && "hidden md:flex"
+        )}>
           {client ? (
             <div className="flex-1 flex overflow-hidden">
               {/* Conversation Sidebar - responsive visibility */}

@@ -14,10 +14,11 @@ export function useIsMobile(): boolean {
 }
 
 // Panel types for mobile navigation
-export type ActivePanel = "conversations" | "chat" | "settings"
+// "sidebar" is the main screen on mobile (DeveloperSidebar with Fund App + Test Users)
+export type ActivePanel = "sidebar" | "conversations" | "chat" | "settings"
 
 // Valid panel values for runtime validation
-const VALID_PANELS: readonly ActivePanel[] = ["conversations", "chat", "settings"]
+const VALID_PANELS: readonly ActivePanel[] = ["sidebar", "conversations", "chat", "settings"]
 
 function isValidPanel(value: unknown): value is ActivePanel {
   return typeof value === "string" && VALID_PANELS.includes(value as ActivePanel)
@@ -49,6 +50,7 @@ interface ResponsiveLayoutContextValue {
   activePanel: ActivePanel
   selectedConversationTopic: string | null
   isMobile: boolean
+  showSidebar: () => void
   showConversations: () => void
   showChat: (topic: string) => void
   showSettings: () => void
@@ -115,10 +117,12 @@ export function ResponsiveLayoutProvider({ children }: ResponsiveLayoutProviderP
   const historyDepth = useRef(0)
   const lastPushedState = useRef<{ panel: ActivePanel; topic: string | null } | null>(null)
   // Navigation stack for desktop back navigation (and popstate sync)
-  const navigationStack = useRef<NavigationEntry[]>([{ panel: "conversations", topic: null }])
+  // Mobile starts at "sidebar", desktop starts at "conversations"
+  const navigationStack = useRef<NavigationEntry[]>([{ panel: "sidebar", topic: null }])
 
   const [state, setState] = useState<ResponsiveLayoutState>({
-    activePanel: "conversations",
+    // Default to sidebar - mobile shows this as main screen, desktop handles visibility via CSS
+    activePanel: "sidebar",
     selectedConversationTopic: null,
   })
 
@@ -129,9 +133,9 @@ export function ResponsiveLayoutProvider({ children }: ResponsiveLayoutProviderP
 
     // Seed history on initial mobile load OR on desktop→mobile transition
     if (isMobile && (!wasInitialized || !wasMobile)) {
-      // If not at root panel, seed conversations at depth 0 then push current at depth 1
-      if (state.activePanel !== "conversations") {
-        const rootState = mergeHistoryState(window.history.state, "conversations", null, 0)
+      // If not at root panel (sidebar), seed sidebar at depth 0 then push current at depth 1
+      if (state.activePanel !== "sidebar") {
+        const rootState = mergeHistoryState(window.history.state, "sidebar", null, 0)
         window.history.replaceState(rootState, "")
         historyDepth.current = 1
         const currentState = mergeHistoryState(window.history.state, state.activePanel, state.selectedConversationTopic, 1)
@@ -190,6 +194,36 @@ export function ResponsiveLayoutProvider({ children }: ResponsiveLayoutProviderP
 
     window.addEventListener("popstate", handlePopState)
     return () => window.removeEventListener("popstate", handlePopState)
+  }, [isMobile])
+
+  // Navigate to sidebar (main screen on mobile)
+  const showSidebar = useCallback(() => {
+    const current = navigationStack.current[navigationStack.current.length - 1]
+    const nextPanel: ActivePanel = "sidebar"
+    const nextTopic: string | null = null
+
+    // No-op if already on sidebar
+    if (current.panel === nextPanel && current.topic === nextTopic) {
+      return
+    }
+
+    // Push to navigation stack for back support
+    navigationStack.current.push({ panel: nextPanel, topic: nextTopic })
+
+    setState({
+      activePanel: nextPanel,
+      selectedConversationTopic: nextTopic,
+    })
+
+    // Push to browser history on mobile
+    if (isMobile) {
+      if (lastPushedState.current?.panel !== nextPanel || lastPushedState.current?.topic !== nextTopic) {
+        historyDepth.current += 1
+        const newState = mergeHistoryState(window.history.state, nextPanel, nextTopic, historyDepth.current)
+        window.history.pushState(newState, "")
+        lastPushedState.current = { panel: nextPanel, topic: nextTopic }
+      }
+    }
   }, [isMobile])
 
   // Navigate to conversation list
@@ -305,9 +339,9 @@ export function ResponsiveLayoutProvider({ children }: ResponsiveLayoutProviderP
         selectedConversationTopic: previous.topic,
       })
     } else {
-      // At root, ensure we're on conversations
+      // At root, ensure we're on sidebar (main screen)
       setState({
-        activePanel: "conversations",
+        activePanel: "sidebar",
         selectedConversationTopic: null,
       })
     }
@@ -317,11 +351,12 @@ export function ResponsiveLayoutProvider({ children }: ResponsiveLayoutProviderP
     activePanel: state.activePanel,
     selectedConversationTopic: state.selectedConversationTopic,
     isMobile,
+    showSidebar,
     showConversations,
     showChat,
     showSettings,
     goBack,
-  }), [state.activePanel, state.selectedConversationTopic, isMobile, showConversations, showChat, showSettings, goBack])
+  }), [state.activePanel, state.selectedConversationTopic, isMobile, showSidebar, showConversations, showChat, showSettings, goBack])
 
   return (
     <ResponsiveLayoutContext.Provider value={value}>

@@ -29,7 +29,7 @@ export function CopyableAddress({ address, className }: CopyableAddressProps) {
     <button
       onClick={handleCopy}
       className={cn(
-        'group/copy inline-flex items-center gap-1 font-mono cursor-pointer min-h-[44px] px-2 -mx-2 touch-manipulation',
+        'group/copy inline-flex items-center gap-1 font-mono cursor-pointer min-h-[44px] md:min-h-0 px-2 md:px-0 -mx-2 md:mx-0 touch-manipulation',
         className
       )}
       title={`Click to copy: ${address}`}

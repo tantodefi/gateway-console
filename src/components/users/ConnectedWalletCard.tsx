@@ -4,12 +4,14 @@ import { Wallet } from 'lucide-react'
 import { CopyableAddress } from '@/components/ui/copyable-address'
 import { useXMTP, WALLET_USER_ID } from '@/contexts/XMTPContext'
 import { useUsers } from '@/hooks/useUsers'
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout'
 
 export function ConnectedWalletCard() {
   const { address, isConnected } = useAccount()
   const { data: walletClient } = useWalletClient()
   const { initializeWithWallet, activeUserId, isConnecting } = useXMTP()
   const { selectUser } = useUsers()
+  const { isMobile, showConversations } = useResponsiveLayout()
 
   // Resolve ENS on mainnet regardless of connected chain
   const { data: ensName } = useEnsName({
@@ -33,6 +35,10 @@ export function ConnectedWalletCard() {
     if (!walletClient || isActive || isConnecting) return
     selectUser('') // Clear ephemeral selection immediately
     await initializeWithWallet(walletClient, address)
+    // Navigate to conversations on mobile
+    if (isMobile) {
+      showConversations()
+    }
   }
 
   return (

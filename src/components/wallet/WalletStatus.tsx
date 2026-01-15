@@ -39,15 +39,13 @@ export function WalletStatus() {
           Base Sepolia
         </span>
       </div>
-      <Button
-        variant="ghost"
-        size="icon"
+      <button
         onClick={() => disconnect()}
-        className="text-zinc-500 hover:text-zinc-300 transition-colors flex-shrink-0 touch-manipulation"
+        className="p-1.5 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 active:bg-zinc-700 transition-colors flex-shrink-0 touch-manipulation min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 flex items-center justify-center"
         aria-label="Disconnect wallet"
       >
         <X className="h-3.5 w-3.5" />
-      </Button>
+      </button>
     </div>
   )
 }

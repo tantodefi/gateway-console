@@ -1,13 +1,68 @@
-# Message With Tokens
+# XMTP Gateway Console
 
-A demo web app that teaches developers how XMTP messaging fees work by letting them experience the system firsthand.
+Learn how XMTP messaging fees work by using them.
 
-## Quick Start
+## What It Does
+
+A deployable messaging app that makes costs visible. Use the hosted version to understand XMTP's fee model, or deploy your own to validate your gateway payment setup—all with testnet tokens.
+
+## When to Use It
+
+- Understanding XMTP's fee model
+- Testing your gateway payment setup before integrating into your app
+
+## Why Use It
+
+XMTP uses an "apps pay, not users" model—your app covers messaging costs, not your users. This console shows you exactly what that means in practice: real messages, real fee breakdowns, and a real gateway setup you can validate before you ship.
+
+---
+
+## Try It Now
+
+Visit the [live demo](https://xmtp-gateway-console.up.railway.app/)—no setup required.
+
+The hosted version connects to a shared gateway. You can:
+1. Mint testnet tokens using the Faucet
+2. Deposit funds to the gateway's payer balance
+3. Create test users and send messages
+4. Watch the gateway pay for each message in real-time
+
+---
+
+## Setup
+
+Run your own instance to validate your gateway payment setup before integrating into your app.
+
+### Components
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Local Dev                               │
+│  ┌──────────────────────┐      ┌────────────────────────────┐  │
+│  │   Frontend (Vite)    │      │   Gateway Service          │  │
+│  │   localhost:5173     │─────▶│   localhost:5050           │  │
+│  │   XMTP Client        │      │   (Docker)                 │  │
+│  └──────────────────────┘      └────────────────────────────┘  │
+│                                           │                     │
+│                                           ▼                     │
+│                               ┌────────────────────────────┐   │
+│                               │   Payer Registry           │   │
+│                               │   (Base Sepolia)           │   │
+│                               └────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+- **Frontend** – This React app. It includes the XMTP client that sends messages through your gateway.
+- **Gateway** – A service you run that holds your payer wallet's private key and signs payment transactions on every message.
+- **Payer Wallet** – An Ethereum wallet that pays for all messages your app sends. Your users never pay—you do.
+- **Payer Registry** – A smart contract on Base Sepolia that holds your balance. The gateway draws from it with each message sent.
+
+When you deploy locally, you run the Frontend and Gateway. The Payer Registry already exists on-chain—you just fund it.
 
 ### Prerequisites
 
 - Node.js 20.19+ or 22.12+
-- Docker (for running the XMTP Gateway)
+- Docker (for running the Gateway)
 
 ### 1. Install dependencies
 
@@ -15,194 +70,120 @@ A demo web app that teaches developers how XMTP messaging fees work by letting t
 npm install
 ```
 
-### 2. Set up environment
+### 2. Configure environment
 
 ```bash
 cp .env.example .env.local
 ```
 
-Generate a payer private key for local development:
+Generate a payer wallet:
 
 ```bash
-# Using cast (from foundry)
+# Using cast (from Foundry)
 cast wallet new
 
 # Or use any Ethereum wallet generator
 ```
 
-Edit `.env.local` and set:
-- `XMTPD_PAYER_PRIVATE_KEY` - Your generated private key
-- `VITE_GATEWAY_PAYER_ADDRESS` - The address derived from your private key
-- `XMTPD_SETTLEMENT_CHAIN_RPC_URL` / `XMTPD_SETTLEMENT_CHAIN_WSS_URL` - Base Sepolia RPC (get from Alchemy)
+Edit `.env.local`:
 
-### 3. Clone and start the Gateway
+| Variable | Value |
+|----------|-------|
+| `XMTPD_PAYER_PRIVATE_KEY` | Your generated private key |
+| `VITE_GATEWAY_PAYER_ADDRESS` | The address derived from your private key |
+| `XMTPD_SETTLEMENT_CHAIN_RPC_URL` | Base Sepolia RPC URL ([get from Alchemy](https://www.alchemy.com/)) |
+| `XMTPD_SETTLEMENT_CHAIN_WSS_URL` | Base Sepolia WebSocket URL |
 
-First, clone the gateway service:
+### 3. Start the Gateway
 
 ```bash
 git clone https://github.com/xmtp/gateway-service-example.git gateway-service
-```
-
-Then start the gateway (builds on first run):
-
-```bash
 docker-compose up -d
 ```
 
-This runs the XMTP Gateway on `http://localhost:5050` (proxied from port 5872).
+The Gateway runs on `http://localhost:5050`.
 
-### 4. Start the frontend
+### 4. Start the Frontend
 
 ```bash
 npm run dev
 ```
 
-Open http://localhost:5173 to see the app.
+Open http://localhost:5173.
 
-## Architecture
+### 5. Fund your payer
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Local Dev                             │
-│  ┌──────────────────────┐    ┌────────────────────────────┐ │
-│  │   Frontend (Vite)    │    │   Gateway Service          │ │
-│  │   localhost:5173     │───▶│   localhost:5050           │ │
-│  │                      │    │   (Docker)                 │ │
-│  └──────────────────────┘    └────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
+Before sending messages, fund your payer wallet:
 
-## Features
+1. Use the **Faucet** to mint testnet mUSD
+2. Use **Deposit** to add funds to your payer balance in the Payer Registry
 
-- **Direct messaging** - Send 1:1 messages between users
-- **Group messaging** - Create and manage group conversations
-- **Test users** - Generate ephemeral users or use connected wallet
-- **Fee visualization** - See real-time cost per message
-- **Balance tracking** - Monitor payer balance and available messages
-- **Testnet faucet** - Mint mUSD for testing
-- **ENS resolution** - Display ENS names for addresses
-- **Mobile responsive** - Full mobile support with optimized UI
+---
 
-## Tech Stack
+## Usage
 
-- **React 19** + TypeScript
-- **Vite** - Build tool
-- **Tailwind CSS** + shadcn/ui - Styling
-- **XMTP Browser SDK** - Messaging protocol
-- **wagmi** + viem - Ethereum interactions
-- **TanStack Query** - Data fetching
+### Send Your First Message
 
-## Commands
+1. **Create a test user** – Click "Add User" to generate an ephemeral wallet, or connect your own wallet.
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Build for production |
-| `npm run preview` | Preview production build |
-| `npm run typecheck` | Type check TypeScript |
-| `npm run lint` | Run ESLint |
-| `docker-compose up -d` | Start gateway in background |
-| `docker-compose down` | Stop gateway |
-| `docker-compose logs -f` | View gateway logs |
+2. **Fund the payer** – Before sending, your gateway needs funds:
+   - Click **Faucet** to mint testnet mUSD
+   - Click **Deposit** to add funds to your payer balance
 
-## Environment Variables
+3. **Start a conversation** – Click "New Conversation" and enter another user's address. You can create a second test user to message yourself.
 
-See `.env.example` for all available environment variables.
+4. **Send a message** – Type and send. Watch the cost display update as you type, then see the fee deducted after sending.
 
-### Frontend (Vite)
+5. **Check the balance** – The header shows your remaining payer balance and estimated messages remaining.
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `VITE_GATEWAY_PAYER_ADDRESS` | Yes | Address that pays for messages |
-| `VITE_APP_NAME` | No | App name displayed in header |
-| `VITE_CONTRACTS_ENVIRONMENT` | No | XMTP environment (testnet-staging, testnet, mainnet) |
-| `VITE_GATEWAY_URL` | No | Gateway URL (default: localhost:5050) |
-| `VITE_SETTLEMENT_CHAIN_RPC_URL` | No | Base Sepolia RPC (default: public RPC) |
-| `VITE_MAINNET_RPC_URL` | No | Mainnet RPC for ENS (default: public RPC) |
-| `VITE_WALLETCONNECT_PROJECT_ID` | No | WalletConnect project ID |
+### Fee Breakdown
 
-### Gateway (Docker)
+As you type, the console calculates message cost using XMTP's fee formula:
 
-| Variable | Description |
-|----------|-------------|
-| `XMTPD_CONTRACTS_ENVIRONMENT` | XMTP environment |
-| `XMTPD_PAYER_PRIVATE_KEY` | Private key for payer wallet |
-| `XMTPD_APP_CHAIN_RPC_URL` | XMTP App Chain RPC |
-| `XMTPD_APP_CHAIN_WSS_URL` | XMTP App Chain WebSocket |
-| `XMTPD_SETTLEMENT_CHAIN_RPC_URL` | Base Sepolia RPC |
-| `XMTPD_SETTLEMENT_CHAIN_WSS_URL` | Base Sepolia WebSocket |
-
-## How Messaging Fees Work
-
-1. **Apps pay, not users** - The gateway's payer wallet pays for all messages
-2. **Deposit to fund** - Deposit mUSD to the payer's balance in PayerRegistry
-3. **Per-message costs** - Each message costs based on payload size
-4. **Shared balance** - Multiple users can send from the same payer balance
-
-Fee formula:
 ```
 cost = (messageFee + storageFee × bytes × days) × gasOverhead
 ```
 
-Current testnet values:
-- Base fee: ~$0.0000385 per message
-- Storage: 22 picodollars per byte per day
-- Default retention: 60 days
-- Gas overhead: 1.25x
+| Component | Current Testnet Value |
+|-----------|----------------------|
+| Base message fee | ~$0.0000385 |
+| Storage fee | 22 picodollars/byte/day |
+| Default retention | 60 days |
+| Gas overhead | 1.25× |
 
-## Production Deployment (Railway)
+Longer messages cost more (more bytes to store). The cost display updates in real-time as your message length changes.
 
-Deploy this app to Railway for production use.
+---
 
-### Prerequisites
+## Deploy to Railway
 
-- Railway account (https://railway.app)
-- GitHub repository connected to Railway
-- WalletConnect project ID
+Deploy your own instance to production.
 
-### Deploy Frontend
+### 1. Deploy the Frontend
 
 1. Create a new Railway project
-2. Click "New Service" → "GitHub Repo"
-3. Select this repository
-4. Railway will auto-detect the `railway.toml` config
+2. Click **New Service** → **GitHub Repo** and select this repository
+3. Set environment variables:
 
-Set these environment variables:
-```bash
+```
 VITE_GATEWAY_URL=https://<gateway-service>.railway.internal:5050
-VITE_SETTLEMENT_CHAIN_RPC_URL=https://sepolia.base.org
-VITE_APP_CHAIN_RPC_URL=https://xmtp-testnet.g.alchemy.com/public
-VITE_MAINNET_RPC_URL=https://eth.llamarpc.com
-VITE_WALLETCONNECT_PROJECT_ID=<your-project-id>
 VITE_GATEWAY_PAYER_ADDRESS=<your-payer-address>
+VITE_WALLETCONNECT_PROJECT_ID=<your-project-id>
 ```
 
-### Deploy Gateway
+### 2. Deploy the Gateway
 
-1. In the same Railway project, click "New Service" → "Docker Image"
+1. In the same project, click **New Service** → **Docker Image**
 2. Enter: `xmtp/xmtpd-gateway:main`
-3. Set port to `5050`
-4. Enable internal networking
+3. Set port to `5050` and enable internal networking
+4. Set environment variable:
 
-Set these environment variables:
-```bash
+```
 XMTPD_PAYER_PRIVATE_KEY=<your-payer-private-key>
 ```
 
-### Fund the Production Payer
+### 3. Fund your payer
 
-1. Copy your payer address (derived from the private key)
-2. Get testnet ETH from a faucet (for gas)
-3. Use the app's Faucet feature to mint mUSD
-4. Deposit mUSD to fund messaging
-
-### Railway Files
-
-- `railway.toml` - Frontend deployment config
-- `docker-compose.yml` - Local development only
-
-### Internal Networking
-
-Railway provides internal networking between services. Use the internal URL for the gateway:
-- Internal: `https://<gateway-service>.railway.internal:5050`
-- Public (if exposed): `https://<gateway-service>.up.railway.app`
+1. Get testnet ETH from a [Base Sepolia faucet](https://www.alchemy.com/faucets/base-sepolia)
+2. Use the app's Faucet to mint mUSD
+3. Deposit mUSD to fund messaging

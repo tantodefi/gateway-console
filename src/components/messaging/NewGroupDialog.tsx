@@ -207,7 +207,7 @@ export function NewGroupDialog() {
       <Tooltip>
         <TooltipTrigger asChild>
           <ResponsiveDialogTrigger asChild>
-            <Button variant="outline" size="icon" className="touch-manipulation">
+            <Button variant="outline" size="icon" className="h-8 w-8 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 touch-manipulation">
               <UserPlus className="h-4 w-4" />
             </Button>
           </ResponsiveDialogTrigger>

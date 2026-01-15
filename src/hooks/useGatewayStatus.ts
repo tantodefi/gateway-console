@@ -22,24 +22,38 @@ export function useGatewayStatus() {
     setStatus('checking')
 
     try {
-      // Try to fetch the gateway root - any response indicates it's running
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000)
+      // The gateway is a gRPC server (HTTP/2 binary protocol), not HTTP/1.1
+      // Regular fetch() won't work, so we use WebSocket with timing detection
+      // Connection refused fails fast (< 50ms), server responding with wrong protocol takes longer
+      const wsUrl = GATEWAY_URL.replace(/^http/, 'ws')
+      const startTime = performance.now()
 
-      await fetch(GATEWAY_URL, {
-        method: 'GET',
-        signal: controller.signal,
-        mode: 'no-cors', // Gateway may not have CORS configured
+      const connected = await new Promise<boolean>((resolve) => {
+        const timeout = setTimeout(() => resolve(false), 3000)
+        const ws = new WebSocket(wsUrl)
+
+        const handleResult = () => {
+          clearTimeout(timeout)
+          const elapsed = performance.now() - startTime
+          // Connection refused typically fails in < 30ms
+          // Protocol errors (server responding) take 50ms+ due to TCP handshake
+          // Use 40ms threshold to distinguish
+          resolve(elapsed > 40)
+          try { ws.close() } catch { /* ignore */ }
+        }
+
+        ws.onopen = () => {
+          clearTimeout(timeout)
+          ws.close()
+          resolve(true)
+        }
+        ws.onerror = handleResult
+        ws.onclose = handleResult
       })
 
-      clearTimeout(timeoutId)
-
-      // In no-cors mode, we can't read the response, but if we get here
-      // without an error, the server responded
-      setStatus('connected')
+      setStatus(connected ? 'connected' : 'disconnected')
       setLastChecked(new Date())
-    } catch (error) {
-      // Network error or timeout means gateway is not reachable
+    } catch {
       setStatus('disconnected')
       setLastChecked(new Date())
     }

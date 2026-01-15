@@ -50,17 +50,17 @@ export function MessageInput() {
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
           disabled={isSending}
-          className="flex-1 min-h-[44px]"
+          className="flex-1 min-h-[44px] md:min-h-0"
         />
         {/* Show cost estimate when there's message content */}
         {message.trim() && (
-          <MessageCostBadge message={message} compact />
+          <MessageCostBadge message={message} compact tooltipSide="left" />
         )}
         <Button
           onClick={handleSend}
           disabled={!message.trim() || isSending}
           size="icon"
-          className="min-h-[44px] min-w-[44px] touch-manipulation"
+          className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 touch-manipulation"
         >
           {isSending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
