@@ -2,6 +2,7 @@ import { useConversations, type ConversationData } from '@/hooks/useConversation
 import { useMessaging } from '@/contexts/MessagingContext'
 import { useXMTP } from '@/contexts/XMTPContext'
 import { useFirstENSName } from '@/hooks/useENSName'
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -119,6 +120,7 @@ export function ConversationList() {
     setPeerAddresses,
     setGroupName,
   } = useMessaging()
+  const { showChat, isMobile } = useResponsiveLayout()
 
   if (!client) {
     return (
@@ -149,6 +151,10 @@ export function ConversationList() {
       setPeerAddress(null)
       setPeerAddresses([])
       setGroupName(conv.name)
+    }
+    // Navigate to chat view on mobile
+    if (isMobile) {
+      showChat(conv.id)
     }
   }
 

@@ -13,16 +13,125 @@ import {
 } from '@/components/messaging'
 import { useXMTP } from '@/contexts/XMTPContext'
 import { APP_NAME } from '@/lib/constants'
-import { ArrowDown } from 'lucide-react'
+import { ArrowDown, ArrowLeft, Menu } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ResponsiveLayoutProvider, useResponsiveLayout, useIsMobile } from '@/hooks/useResponsiveLayout'
+import { cn } from '@/lib/utils'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Button } from '@/components/ui/button'
 
-function App() {
+// Developer sidebar content - extracted for reuse in Sheet
+function DeveloperSidebar() {
+  return (
+    <>
+      {/* Step 1: Fund App */}
+      <div className="p-3 border-b border-zinc-800/50 space-y-2.5">
+        <div className="flex items-center gap-2.5">
+          <span className="flex items-center justify-center w-5 h-5 rounded bg-zinc-700/50 text-zinc-300 text-[10px] font-mono font-bold ring-1 ring-zinc-600/50">1</span>
+          <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
+            Fund App
+          </span>
+        </div>
+
+        {/* Connected Wallet Card */}
+        <div className="bg-gradient-to-b from-zinc-900 to-zinc-900/50 rounded-lg p-3 space-y-2 ring-1 ring-zinc-800/50">
+          <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
+            Connected Wallet
+          </div>
+          <WalletButton />
+          <UserBalance />
+          <FaucetDialog />
+        </div>
+
+        {/* Arrow indicator */}
+        <div className="flex justify-center py-1">
+          <ArrowDown className="h-3.5 w-3.5 text-zinc-600" />
+        </div>
+
+        {/* Payer Wallet Card */}
+        <div className="bg-gradient-to-b from-zinc-900 to-zinc-900/50 rounded-lg p-3 space-y-2 ring-1 ring-zinc-800/50">
+          <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
+            Payer Wallet
+          </div>
+          <BalanceDisplay />
+          <DepositDialog />
+        </div>
+      </div>
+
+      {/* Step 2: Test As User */}
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="px-3 pt-3">
+          <div className="flex items-center gap-2.5">
+            <span className="flex items-center justify-center w-5 h-5 rounded bg-zinc-700/50 text-zinc-300 text-[10px] font-mono font-bold ring-1 ring-zinc-600/50">2</span>
+            <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
+              Test As User
+            </span>
+          </div>
+        </div>
+        <UserList />
+      </div>
+    </>
+  )
+}
+
+// Mobile header with back button and menu
+function MobileHeader() {
+  const { activePanel, goBack } = useResponsiveLayout()
+  const showBackButton = activePanel !== 'conversations'
+
+  return (
+    <div className="flex items-center justify-between px-3 py-2 bg-zinc-950 border-b border-zinc-800/50 md:hidden">
+      <div className="flex items-center gap-2">
+        {showBackButton && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={goBack}
+            className="h-9 w-9 text-zinc-400 hover:text-zinc-100"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        )}
+        <div className="flex items-center gap-2">
+          <img src="/x-mark-red.svg" alt="XMTP" className="h-4 w-4" />
+          <span className="text-xs font-mono font-medium uppercase tracking-widest text-zinc-100">
+            {activePanel === 'chat' ? 'Chat' : activePanel === 'settings' ? 'Settings' : 'Messages'}
+          </span>
+        </div>
+      </div>
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 text-zinc-400 hover:text-zinc-100"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-72 p-0 bg-zinc-950 border-zinc-800">
+          <div className="flex flex-col h-full">
+            <DeveloperSidebar />
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+  )
+}
+
+// Main app content - uses responsive layout context
+function AppContent() {
   const { client, isConnecting } = useXMTP()
+  const isMobile = useIsMobile()
+  const { activePanel } = useResponsiveLayout()
 
   return (
     <div className="min-h-screen flex flex-col bg-black">
-      {/* Gateway Console Header - spans full width */}
-      <div className="relative px-4 py-2.5 bg-zinc-950 border-b border-zinc-800/50">
+      {/* Mobile Header - shown only on mobile */}
+      <MobileHeader />
+
+      {/* Gateway Console Header - hidden on mobile, shown on desktop */}
+      <div className="relative px-4 py-2.5 bg-zinc-950 border-b border-zinc-800/50 hidden md:block">
         <div className="flex items-center gap-2.5">
           <img src="/x-mark-red.svg" alt="XMTP" className="h-5 w-5" />
           <span className="text-xs font-mono font-medium uppercase tracking-widest text-zinc-100">
@@ -41,62 +150,25 @@ function App() {
 
       {/* Main content area */}
       <div className="flex-1 flex min-h-0">
-        {/* Developer Context - Left sidebar */}
-        <div className="w-72 bg-zinc-950 flex flex-col">
-          {/* Step 1: Fund App */}
-          <div className="p-3 border-b border-zinc-800/50 space-y-2.5">
-            <div className="flex items-center gap-2.5">
-              <span className="flex items-center justify-center w-5 h-5 rounded bg-zinc-700/50 text-zinc-300 text-[10px] font-mono font-bold ring-1 ring-zinc-600/50">1</span>
-              <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
-                Fund App
-              </span>
-            </div>
-
-            {/* Connected Wallet Card */}
-            <div className="bg-gradient-to-b from-zinc-900 to-zinc-900/50 rounded-lg p-3 space-y-2 ring-1 ring-zinc-800/50">
-              <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
-                Connected Wallet
-              </div>
-              <WalletButton />
-              <UserBalance />
-              <FaucetDialog />
-            </div>
-
-            {/* Arrow indicator */}
-            <div className="flex justify-center py-1">
-              <ArrowDown className="h-3.5 w-3.5 text-zinc-600" />
-            </div>
-
-            {/* Payer Wallet Card */}
-            <div className="bg-gradient-to-b from-zinc-900 to-zinc-900/50 rounded-lg p-3 space-y-2 ring-1 ring-zinc-800/50">
-              <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
-                Payer Wallet
-              </div>
-              <BalanceDisplay />
-              <DepositDialog />
-            </div>
-          </div>
-
-          {/* Step 2: Test As User */}
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className="px-3 pt-3">
-              <div className="flex items-center gap-2.5">
-                <span className="flex items-center justify-center w-5 h-5 rounded bg-zinc-700/50 text-zinc-300 text-[10px] font-mono font-bold ring-1 ring-zinc-600/50">2</span>
-                <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
-                  Test As User
-                </span>
-              </div>
-            </div>
-            <UserList />
-          </div>
+        {/* Developer Context - Left sidebar (hidden on mobile, shown on desktop) */}
+        <div className="hidden md:flex md:w-72 bg-zinc-950 flex-col">
+          <DeveloperSidebar />
         </div>
 
-        {/* User Context - Main app area with rounded top-left corner */}
-        <div className="flex-1 flex flex-col bg-background rounded-tl-xl overflow-hidden">
+        {/* User Context - Main app area with rounded top-left corner on desktop */}
+        <div className={cn(
+          "flex-1 flex flex-col bg-background overflow-hidden",
+          !isMobile && "rounded-tl-xl"
+        )}>
           {client ? (
             <div className="flex-1 flex overflow-hidden">
-              {/* Conversation Sidebar */}
-              <div className="w-72 border-r flex flex-col">
+              {/* Conversation Sidebar - shown based on activePanel on mobile */}
+              <div className={cn(
+                "flex flex-col border-r",
+                isMobile
+                  ? activePanel === 'conversations' ? 'flex-1' : 'hidden'
+                  : 'w-72'
+              )}>
                 <div className="p-3 border-b flex items-center justify-between">
                   <h1 className="font-semibold">Conversations</h1>
                   <div className="flex items-center gap-1">
@@ -108,16 +180,26 @@ function App() {
                 <ConversationList />
               </div>
 
-              {/* Message Area */}
-              <div className="flex-1 flex flex-col">
+              {/* Message Area - shown based on activePanel on mobile */}
+              <div className={cn(
+                "flex flex-col",
+                isMobile
+                  ? activePanel === 'chat' ? 'flex-1' : 'hidden'
+                  : 'flex-1'
+              )}>
                 <MessageThread />
                 <MessageInput />
               </div>
             </div>
           ) : isConnecting ? (
             <div className="flex-1 flex overflow-hidden">
-              {/* Conversation Sidebar Skeleton */}
-              <div className="w-72 border-r flex flex-col">
+              {/* Conversation Sidebar Skeleton - responsive */}
+              <div className={cn(
+                "flex flex-col border-r",
+                isMobile
+                  ? activePanel === 'conversations' ? 'flex-1' : 'hidden'
+                  : 'w-72'
+              )}>
                 <div className="p-3 border-b flex items-center justify-between">
                   <Skeleton className="h-5 w-28" />
                   <div className="flex items-center gap-1">
@@ -132,8 +214,13 @@ function App() {
                 </div>
               </div>
 
-              {/* Message Area Skeleton */}
-              <div className="flex-1 flex flex-col">
+              {/* Message Area Skeleton - responsive */}
+              <div className={cn(
+                "flex flex-col",
+                isMobile
+                  ? activePanel === 'chat' ? 'flex-1' : 'hidden'
+                  : 'flex-1'
+              )}>
                 <div className="p-3 border-b">
                   <Skeleton className="h-6 w-32" />
                 </div>
@@ -157,6 +244,15 @@ function App() {
         </div>
       </div>
     </div>
+  )
+}
+
+// App wrapper with ResponsiveLayoutProvider
+function App() {
+  return (
+    <ResponsiveLayoutProvider>
+      <AppContent />
+    </ResponsiveLayoutProvider>
   )
 }
 

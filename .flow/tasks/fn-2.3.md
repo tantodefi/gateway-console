@@ -46,9 +46,20 @@ Update App.tsx to use responsive breakpoints and conditional panel rendering bas
 - [ ] `npm run typecheck` passes
 - [ ] `npm run build` succeeds
 ## Done summary
-TBD
+- Added responsive layout support to App.tsx with mobile breakpoints
+- Wrapped app with ResponsiveLayoutProvider for panel state management
+- Created MobileHeader component with back button and hamburger menu
+- Extracted DeveloperSidebar for reuse in Sheet on mobile
 
+Why:
+- Mobile viewport (< 768px) now shows single panel at a time
+- Desktop viewport (>= 768px) behavior unchanged (all panels visible)
+
+Verification:
+- npm run typecheck passes
+- npm run build succeeds
+- Responsive layout hook properly controls panel visibility
 ## Evidence
-- Commits:
-- Tests:
+- Commits: 4e1c65e2c5848c2e49d72dec917fe43b5d2c9af4
+- Tests: npm run typecheck, npm run build
 - PRs:
