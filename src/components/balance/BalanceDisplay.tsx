@@ -80,17 +80,13 @@ export function BalanceDisplay() {
         <div className="flex items-baseline justify-between">
           <span className="text-xs text-zinc-500 font-mono">Messages</span>
           {warningLevel !== 'none' && (
-            <AlertTriangle className={cn(
-              'h-3 w-3',
-              warningLevel === 'critical' ? 'text-red-400' : 'text-amber-400'
-            )} />
+            <AlertTriangle className="h-3 w-3 text-amber-400" />
           )}
         </div>
         <div className="flex items-baseline gap-1.5">
           <span className={cn(
             'text-2xl font-mono font-bold tabular-nums',
-            warningLevel === 'critical' ? 'text-red-400' :
-            warningLevel === 'low' ? 'text-amber-400' : 'text-emerald-400'
+            warningLevel !== 'none' ? 'text-zinc-500' : 'text-emerald-400'
           )}>
             {formattedMessages}
           </span>
@@ -134,12 +130,6 @@ export function BalanceDisplay() {
         </Tooltip>
       </TooltipProvider>
 
-      {/* Warning */}
-      {warningLevel === 'critical' && (
-        <div className="bg-red-950/50 border border-red-900/50 rounded px-2 py-1.5">
-          <p className="text-xs text-red-400 font-mono">Deposit funds to continue</p>
-        </div>
-      )}
     </div>
   )
 }
