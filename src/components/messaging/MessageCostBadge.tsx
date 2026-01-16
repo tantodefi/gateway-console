@@ -6,7 +6,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { calculateMessageCost, getMessageBytes, estimatePayloadSize, formatMicroCost, ENCODING_OVERHEAD_BYTES } from '@/lib/messageCosting'
-import { DollarSign } from 'lucide-react'
+import { MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface MessageCostBadgeProps {
@@ -42,14 +42,14 @@ export function MessageCostBadge({ message, compact = false, className, tooltipS
         <TooltipTrigger asChild>
           <div
             className={cn(
-              'inline-flex items-center gap-1 text-xs text-muted-foreground',
+              'inline-flex items-center gap-1 text-xs text-zinc-500',
               'cursor-help',
               className
             )}
           >
-            {!compact && <DollarSign className="h-3 w-3" />}
-            <span className={cn(compact && 'opacity-70')}>
-              {compact ? `~${costResult.formattedCost}` : costResult.formattedCost}
+            <MessageSquare className="h-2.5 w-2.5" />
+            <span className={cn('font-mono', compact && 'text-[10px]')}>
+              {costResult.formattedCost}
             </span>
           </div>
         </TooltipTrigger>
@@ -82,6 +82,9 @@ export function MessageCostBadge({ message, compact = false, className, tooltipS
                 <span>{costResult.formattedCost}</span>
               </div>
             </div>
+            <p className="text-[10px] text-zinc-500 pt-1 border-t border-white/10">
+              Paid from Messaging Balance on Base Sepolia
+            </p>
           </div>
         </TooltipContent>
       </Tooltip>
