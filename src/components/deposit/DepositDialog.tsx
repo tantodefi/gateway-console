@@ -66,12 +66,13 @@ export function DepositDialog() {
 
     const amountBigInt = BigInt(Math.floor(parsedAmount * 10 ** TOKENS.underlyingFeeToken.decimals))
     const currentMessaging = currentMessagingBalance ?? 0n
-    const currentGas = currentGasBalance ?? 0n
+    // Gas balance is 18 decimals (native token), normalize to 6 decimals for comparison
+    const currentGasNormalized = (currentGasBalance ?? 0n) / 10n ** 12n
 
     const { payerAmount, appChainAmount } = calculateTargetedSplit(
       amountBigInt,
       currentMessaging,
-      currentGas
+      currentGasNormalized
     )
 
     // Calculate actual percentages for this deposit
@@ -89,7 +90,7 @@ export function DepositDialog() {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
-      maximumFractionDigits: 4,
+      maximumFractionDigits: 2,
     }).format(value)
   }
 
@@ -111,14 +112,18 @@ export function DepositDialog() {
       } : null,
     })
     if (status === 'success' && lastDeposit && lastDeposit.appChainAmount > 0n) {
-      console.log('[Deposit] Applying optimistic update:', lastDeposit.appChainAmount.toString())
-      addOptimisticDeposit(lastDeposit.appChainAmount)
+      // Convert from 6 decimals (deposit token) to 18 decimals (native gas token)
+      const appChainAmount18Decimals = lastDeposit.appChainAmount * 10n ** 12n
+      console.log('[Deposit] Applying optimistic update:', appChainAmount18Decimals.toString())
+      addOptimisticDeposit(appChainAmount18Decimals)
     }
   }, [status, lastDeposit, addOptimisticDeposit])
 
   const handleDeposit = () => {
     if (!isValidAmount) return
-    deposit(amount, currentMessagingBalance ?? 0n, currentGasBalance ?? 0n)
+    // Normalize gas balance from 18 to 6 decimals for the split calculation
+    const currentGasNormalized = (currentGasBalance ?? 0n) / 10n ** 12n
+    deposit(amount, currentMessagingBalance ?? 0n, currentGasNormalized)
   }
 
   const handleMax = () => {
