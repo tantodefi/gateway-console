@@ -13,7 +13,7 @@ export const xmtpAppchain = defineChain({
   nativeCurrency: {
     name: 'XMTP USD',
     symbol: 'xUSD',
-    decimals: 6,
+    decimals: 18,
   },
   rpcUrls: {
     default: {

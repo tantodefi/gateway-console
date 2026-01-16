@@ -2,7 +2,7 @@ import { usePayerBalance } from '@/hooks/usePayerBalance'
 import { useGasReserveBalance } from '@/hooks/useGasReserveBalance'
 import { GATEWAY_PAYER_ADDRESS } from '@/lib/constants'
 import { CopyableAddress } from '@/components/ui/copyable-address'
-import { Loader2, AlertTriangle, Fuel } from 'lucide-react'
+import { Loader2, AlertTriangle } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
@@ -21,21 +21,20 @@ export function BalanceDisplay() {
   } = usePayerBalance()
 
   const {
-    formattedOperations,
     balance: gasBalance,
     formattedBalance: formattedGasBalance,
-    warningLevel: gasWarningLevel,
-    isLoading: isGasLoading,
   } = useGasReserveBalance()
 
-  // Calculate combined total balance (both are in 6 decimals)
-  const totalBalance = (messagingBalance ?? 0n) + (gasBalance ?? 0n)
-  const totalBalanceDollars = Number(totalBalance) / 1_000_000
+  // Calculate combined total balance
+  // Note: messagingBalance is 6 decimals (xUSD token), gasBalance is 18 decimals (native)
+  const messagingDollars = Number(messagingBalance ?? 0n) / 1_000_000
+  const gasDollars = Number(gasBalance ?? 0n) / 1_000_000_000_000_000_000
+  const totalBalanceDollars = messagingDollars + gasDollars
   const formattedTotalBalance = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
-    maximumFractionDigits: 4,
+    maximumFractionDigits: 2,
   }).format(totalBalanceDollars)
 
   // No payer address configured
@@ -99,66 +98,37 @@ export function BalanceDisplay() {
         </div>
       </div>
 
-      {/* Gas Reserve section - secondary prominence */}
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="pt-2 border-t border-zinc-800/50 cursor-help">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Fuel className="h-3 w-3 text-zinc-600" />
-                  <span className="text-[11px] text-zinc-500 font-mono">Gas Reserve</span>
-                  {gasWarningLevel !== 'none' && (
-                    <AlertTriangle className={cn(
-                      'h-2.5 w-2.5',
-                      gasWarningLevel === 'critical' ? 'text-red-400' : 'text-amber-400'
-                    )} />
-                  )}
-                </div>
-                <span className={cn(
-                  'text-[11px] font-mono tabular-nums',
-                  gasWarningLevel === 'critical' ? 'text-red-400' :
-                  gasWarningLevel === 'low' ? 'text-amber-400' : 'text-zinc-400'
-                )}>
-                  {isGasLoading ? '...' : `${formattedOperations} ops`}
-                </span>
-              </div>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="max-w-xs">
-            <div className="space-y-1.5 text-xs">
-              <p className="font-medium">Gas Reserve for Group Operations</p>
-              <p className="text-muted-foreground">
-                Used for on-chain operations like group membership changes and identity updates.
-                Separate from message fees.
-              </p>
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
-      {/* Balance row - combined total */}
+      {/* mUSD Balance row */}
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="flex items-center justify-between pt-1 border-t border-zinc-800 cursor-help">
-              <span className="text-xs text-zinc-500 font-mono">Total Balance</span>
+              <span className="text-xs text-zinc-500 font-mono">mUSD Balance</span>
               <span className="text-xs text-zinc-300 font-mono tabular-nums">{formattedTotalBalance}</span>
             </div>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="max-w-xs">
-            <div className="space-y-1.5 text-xs">
+          <TooltipContent side="right" sideOffset={22} className="max-w-xs">
+            <div className="space-y-2 text-xs">
               <p className="font-medium">Balance Breakdown</p>
-              <div className="space-y-0.5 text-muted-foreground">
-                <div className="flex justify-between gap-4">
-                  <span>Messaging (Base):</span>
-                  <span className="font-mono">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(Number(messagingBalance ?? 0n) / 1_000_000)}</span>
+              <div className="space-y-2 text-muted-foreground">
+                <div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-white">Messaging</span>
+                    <span className="font-mono">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(messagingBalance ?? 0n) / 1_000_000)}</span>
+                  </div>
+                  <p className="text-[10px] text-zinc-500">Pays for sending messages. Held on Base Sepolia.</p>
                 </div>
-                <div className="flex justify-between gap-4">
-                  <span>Gas Reserve (Appchain):</span>
-                  <span className="font-mono">{formattedGasBalance}</span>
+                <div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-white">Gas Reserve</span>
+                    <span className="font-mono">{formattedGasBalance}</span>
+                  </div>
+                  <p className="text-[10px] text-zinc-500">Pays for on-chain operations like creating groups and adding members. Held on XMTP Appchain.</p>
                 </div>
               </div>
+              <p className="text-[10px] text-zinc-500 pt-1 border-t border-white/10">
+                Deposits are automatically split between these two balances.
+              </p>
             </div>
           </TooltipContent>
         </Tooltip>

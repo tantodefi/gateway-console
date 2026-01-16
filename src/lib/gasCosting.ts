@@ -5,29 +5,32 @@
  * These cover on-chain operations like group membership changes
  * and identity updates that require strict ordering.
  *
- * All calculations use xUSD (6 decimals, like USDC) as the native token.
+ * All calculations use xUSD (18 decimals) as the native token.
  */
 
-// Fee token decimals (xUSD uses 6 decimals like USDC)
-const FEE_TOKEN_DECIMALS = 6
+// Fee token decimals (xUSD native token uses 18 decimals)
+const FEE_TOKEN_DECIMALS = 18
 
 // Estimated gas costs per operation (in gas units)
-// These are conservative estimates based on typical L3 operations
+// Based on actual on-chain observations from XMTP Ropsten testnet
+// Note: Group message operations vary significantly based on content size
 const GAS_ESTIMATES = {
-  createGroup: 150_000n,
-  addMember: 100_000n,
-  removeMember: 80_000n,
-  updateMetadata: 60_000n,
-  linkWallet: 120_000n,
-  unlinkWallet: 100_000n,
+  // Group operations (via GroupMessageBroadcaster)
+  // Small message: ~93K, Large message: ~2.7M - using median estimate
+  createGroup: 500_000n,
+  addMember: 200_000n,
+  removeMember: 150_000n,
+  updateMetadata: 100_000n,
+  // Identity operations (via IdentityUpdateBroadcaster) - observed ~62K
+  linkWallet: 65_000n,
+  unlinkWallet: 65_000n,
 } as const
 
 export type GasOperationType = keyof typeof GAS_ESTIMATES
 
-// Convert gwei to xUSD (approximate: 1 gwei = 10^-9 ETH, 1 ETH ~ $3000, so 1 gwei ~ $0.000003)
-// On L3 with xUSD as native token, gas is priced in xUSD directly
-// Estimate: 1 gas unit costs approximately 0.00000001 xUSD at current prices
-const XUSD_PER_GAS_UNIT = 0.00000001
+// Gas price on XMTP Appchain: 0.1 Gwei = 0.0000000001 xUSD per gas unit
+// This is the actual observed gas price from on-chain transactions
+const XUSD_PER_GAS_UNIT = 0.0000000001
 
 export interface GasOperationCost {
   /** Operation type */
@@ -134,7 +137,7 @@ export function calculateOperationsAvailable(
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
-      maximumFractionDigits: 4,
+      maximumFractionDigits: 2,
     }).format(balanceDollars),
     operationsAvailable,
     formattedOperations: formatOperationsCount(operationsAvailable),

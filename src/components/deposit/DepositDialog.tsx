@@ -15,14 +15,8 @@ import { Input } from '@/components/ui/input'
 import { useDeposit } from '@/hooks/useDeposit'
 import { usePayerBalance } from '@/hooks/usePayerBalance'
 import { useGasReserveBalance } from '@/hooks/useGasReserveBalance'
-import { Loader2, CheckCircle2, XCircle, ArrowDownToLine, PenLine, MessageSquare, Fuel, Info } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, ArrowDownToLine, PenLine, Fuel } from 'lucide-react'
 import { TOKENS, GATEWAY_PAYER_ADDRESS } from '@/lib/constants'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 
 export function DepositDialog() {
   const [open, setOpen] = useState(false)
@@ -33,18 +27,17 @@ export function DepositDialog() {
   const {
     deposit,
     calculateTargetedSplit,
-    targetMessagingPercent,
-    targetGasPercent,
     status,
     error,
     isPending,
     balance,
     reset,
+    lastDeposit,
   } = useDeposit()
 
   // Get current balances to calculate targeted split
   const { rawBalance: currentMessagingBalance } = usePayerBalance()
-  const { balance: currentGasBalance } = useGasReserveBalance()
+  const { balance: currentGasBalance, addOptimisticDeposit } = useGasReserveBalance()
 
   const isWrongNetwork = chainId !== baseSepolia.id
   const hasPayerAddress = !!GATEWAY_PAYER_ADDRESS
@@ -107,6 +100,21 @@ export function DepositDialog() {
       setAmount('')
     }
   }, [open, reset])
+
+  // Optimistically update gas reserve balance on successful deposit
+  useEffect(() => {
+    console.log('[Deposit] Optimistic update check:', {
+      status,
+      lastDeposit: lastDeposit ? {
+        payerAmount: lastDeposit.payerAmount.toString(),
+        appChainAmount: lastDeposit.appChainAmount.toString(),
+      } : null,
+    })
+    if (status === 'success' && lastDeposit && lastDeposit.appChainAmount > 0n) {
+      console.log('[Deposit] Applying optimistic update:', lastDeposit.appChainAmount.toString())
+      addOptimisticDeposit(lastDeposit.appChainAmount)
+    }
+  }, [status, lastDeposit, addOptimisticDeposit])
 
   const handleDeposit = () => {
     if (!isValidAmount) return
@@ -220,8 +228,7 @@ export function DepositDialog() {
 
     // Ready state - input form
     return (
-      <TooltipProvider>
-        <div className="space-y-4 py-2">
+      <div className="space-y-4 py-2">
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Amount</span>
@@ -250,41 +257,20 @@ export function DepositDialog() {
             )}
           </div>
 
-          {/* Split Preview */}
-          {parsedAmount > 0 && (
-            <div className="rounded-md border bg-muted/30 p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground font-medium">Deposit Allocation</span>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent side="left" className="max-w-xs">
-                    <p className="text-xs">
-                      Split is calculated to target {targetMessagingPercent.toString()}% messaging / {targetGasPercent.toString()}% gas
-                      across your total balance. Current allocation adjusts the split accordingly.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-1.5">
-                    <MessageSquare className="h-3.5 w-3.5 text-emerald-500" />
-                    <span>Messaging</span>
-                    <span className="text-xs text-muted-foreground">({splitPreview.messagingPercent}%)</span>
-                  </div>
-                  <span className="font-mono text-sm">{formatSplitAmount(splitPreview.payerAmount)}</span>
+          {/* Gas Reserve Note - secondary, like in BalanceDisplay */}
+          {parsedAmount > 0 && splitPreview.appChainAmount > 0n && (
+            <div className="border-t pt-2 space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <Fuel className="h-3 w-3 text-zinc-500" />
+                  <span>Reserved for gas</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-1.5">
-                    <Fuel className="h-3.5 w-3.5 text-zinc-500" />
-                    <span>Gas Reserve</span>
-                    <span className="text-xs text-muted-foreground">({splitPreview.gasPercent}%)</span>
-                  </div>
-                  <span className="font-mono text-sm">{formatSplitAmount(splitPreview.appChainAmount)}</span>
-                </div>
+                <span className="font-mono">{formatSplitAmount(splitPreview.appChainAmount)}</span>
               </div>
+              <p className="text-[10px] text-zinc-500">
+                Every ~100k messages costs about $4 in messaging fees and $1 in gas
+                for group operations. Your deposit is split to keep both in balance.
+              </p>
             </div>
           )}
 
@@ -302,12 +288,7 @@ export function DepositDialog() {
               'Deposit'
             )}
           </Button>
-
-          <p className="text-xs text-muted-foreground text-center">
-            Funds messaging and group operations for this app
-          </p>
-        </div>
-      </TooltipProvider>
+      </div>
     )
   }
 
@@ -321,7 +302,7 @@ export function DepositDialog() {
           className="w-full text-xs border-zinc-300 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 active:bg-zinc-200 disabled:text-zinc-400 disabled:border-zinc-200 touch-manipulation"
         >
           <ArrowDownToLine className="h-3.5 w-3.5 mr-1.5" />
-          Deposit to App
+          Fund
         </Button>
       </ResponsiveDialogTrigger>
       <ResponsiveDialogContent>

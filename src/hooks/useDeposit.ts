@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import {
   useAccount,
   useWalletClient,
@@ -15,7 +15,6 @@ import {
   CONTRACTS,
   TOKENS,
   GATEWAY_PAYER_ADDRESS,
-  APPCHAIN_CONTRACTS,
   GAS_RESERVE_CONSTANTS,
 } from '@/lib/constants'
 
@@ -24,6 +23,9 @@ export type DepositStatus = 'idle' | 'signing' | 'pending' | 'confirming' | 'suc
 export function useDeposit() {
   const [status, setStatus] = useState<DepositStatus>('idle')
   const [error, setError] = useState<Error | null>(null)
+
+  // Track the last deposit amounts for optimistic updates
+  const lastDepositRef = useRef<{ payerAmount: bigint; appChainAmount: bigint } | null>(null)
 
   const { address } = useAccount()
   const { data: walletClient } = useWalletClient({ chainId: baseSepolia.id })
@@ -123,6 +125,17 @@ export function useDeposit() {
         currentGas
       )
 
+      console.log('[Deposit] Split calculation:', {
+        depositAmount: amount.toString(),
+        currentMessaging: currentMessaging.toString(),
+        currentGas: currentGas.toString(),
+        payerAmount: payerAmount.toString(),
+        appChainAmount: appChainAmount.toString(),
+      })
+
+      // Store for optimistic updates
+      lastDepositRef.current = { payerAmount, appChainAmount }
+
       setStatus('signing')
       setError(null)
 
@@ -150,7 +163,7 @@ export function useDeposit() {
             args: [
               GATEWAY_PAYER_ADDRESS,                    // payer - the gateway's payer address
               payerAmount,                              // payerRegistryAmount - messaging fees
-              APPCHAIN_CONTRACTS.appChainGateway,       // appChainRecipient - gas reserve recipient
+              GATEWAY_PAYER_ADDRESS,                     // appChainRecipient - gas reserve recipient
               appChainAmount,                           // appChainAmount - gas reserve funds
               GAS_RESERVE_CONSTANTS.bridgeGasLimit,     // appChainGasLimit - for bridging
               GAS_RESERVE_CONSTANTS.bridgeMaxFeePerGas, // appChainMaxFeePerGas - for bridging
@@ -206,6 +219,7 @@ export function useDeposit() {
   const reset = useCallback(() => {
     setStatus('idle')
     setError(null)
+    lastDepositRef.current = null
   }, [])
 
   return {
@@ -221,5 +235,7 @@ export function useDeposit() {
     balance,
     reset,
     refetchBalance,
+    // Last deposit amounts for optimistic updates
+    lastDeposit: lastDepositRef.current,
   }
 }

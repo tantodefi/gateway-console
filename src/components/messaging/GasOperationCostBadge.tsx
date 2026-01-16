@@ -6,7 +6,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { calculateGasOperationCost, type GasOperationType } from '@/lib/gasCosting'
-import { Fuel } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface GasOperationCostBadgeProps {
@@ -38,18 +37,15 @@ export function GasOperationCostBadge({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div
+          <span
             className={cn(
-              'inline-flex items-center gap-1 text-xs text-zinc-500',
-              'cursor-help',
+              'text-xs text-zinc-500 font-mono cursor-help',
+              compact && 'text-[10px]',
               className
             )}
           >
-            <Fuel className="h-2.5 w-2.5" />
-            <span className={cn('font-mono', compact && 'text-[10px]')}>
-              {costInfo.formattedCost}
-            </span>
-          </div>
+            {costInfo.formattedCost}
+          </span>
         </TooltipTrigger>
         <TooltipContent side={tooltipSide} className="max-w-xs">
           <div className="space-y-1.5 text-xs">
