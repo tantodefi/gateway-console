@@ -15,6 +15,7 @@ import {
 } from '@/components/messaging'
 import { MobileHeader } from '@/components/layout'
 import { useXMTP, WALLET_USER_ID } from '@/contexts/XMTPContext'
+import { XMTPStatus } from '@/components/xmtp'
 import { useMessaging } from '@/contexts/MessagingContext'
 import { useUsers } from '@/hooks/useUsers'
 import { useENSName } from '@/hooks/useENSName'
@@ -92,7 +93,7 @@ function truncateAddress(address: string): string {
 
 // Main app content - uses responsive layout context
 function AppContent() {
-  const { client, isConnecting, activeUserId: xmtpActiveUserId } = useXMTP()
+  const { client, isConnecting, error: xmtpError, activeUserId: xmtpActiveUserId } = useXMTP()
   const { activePanel, isMobile } = useResponsiveLayout()
   const { peerAddress, groupName, conversationType } = useMessaging()
   const { activeUser } = useUsers()
@@ -288,10 +289,13 @@ function AppContent() {
               </div>
             </div>
           ) : (
-            <main className="flex-1 flex flex-col items-center justify-center p-8">
-              <p className="text-muted-foreground">
-                Select a user to start messaging
-              </p>
+            <main className="flex-1 flex flex-col items-center justify-center p-8 gap-4">
+              <XMTPStatus />
+              {!xmtpError && (
+                <p className="text-muted-foreground">
+                  Select a user to start messaging
+                </p>
+              )}
             </main>
           )}
         </div>
