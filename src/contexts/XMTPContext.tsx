@@ -7,10 +7,11 @@ import {
   type ReactNode,
 } from 'react'
 import { Client, LogLevel } from '@xmtp/browser-sdk'
-import { createEphemeralSigner, createWalletSigner } from '@/lib/xmtp-signer'
+import { createEphemeralSigner, createSignerForWallet } from '@/lib/xmtp-signer'
 import { GATEWAY_URL, USE_GATEWAY, XMTP_NETWORK } from '@/lib/constants'
 import type { EphemeralUser } from '@/types/user'
-import type { WalletClient, Address } from 'viem'
+import type { WalletTypeInfo } from '@/types/wallet-type'
+import type { WalletClient, Address, PublicClient } from 'viem'
 
 // Special ID to identify when the connected wallet is the active user
 export const WALLET_USER_ID = '__connected_wallet__'
@@ -19,13 +20,20 @@ interface XMTPContextValue {
   client: Client | null
   activeUserId: string | null
   initializeClient: (user: EphemeralUser) => Promise<void>
-  initializeWithWallet: (walletClient: WalletClient, address: Address) => Promise<void>
+  initializeWithWallet: (
+    walletClient: WalletClient,
+    publicClient: PublicClient,
+    address: Address,
+    connectorId: string,
+    chainId: number
+  ) => Promise<void>
   disconnect: () => Promise<void>
   isConnecting: boolean
   isLoadingConversations: boolean
   setIsLoadingConversations: (loading: boolean) => void
   error: Error | null
   inboxId: string | null
+  walletTypeInfo: WalletTypeInfo | null
 }
 
 const XMTPContext = createContext<XMTPContextValue | null>(null)
@@ -41,6 +49,7 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
   const [isLoadingConversations, setIsLoadingConversations] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [inboxId, setInboxId] = useState<string | null>(null)
+  const [walletTypeInfo, setWalletTypeInfo] = useState<WalletTypeInfo | null>(null)
 
   // Track the current client ref for cleanup (avoids stale closure issues)
   const clientRef = useRef<Client | null>(null)
@@ -61,6 +70,7 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
     setActiveUserId(null)
     setInboxId(null)
     setError(null)
+    setWalletTypeInfo(null)
   }, [])
 
   const initializeClient = useCallback(async (user: EphemeralUser) => {
@@ -135,7 +145,13 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
     }
   }, [activeUserId])
 
-  const initializeWithWallet = useCallback(async (walletClient: WalletClient, address: Address) => {
+  const initializeWithWallet = useCallback(async (
+    walletClient: WalletClient,
+    publicClient: PublicClient,
+    address: Address,
+    connectorId: string,
+    chainId: number
+  ) => {
     // Skip if already connected as wallet
     if (clientRef.current && activeUserId === WALLET_USER_ID) {
       return
@@ -166,7 +182,16 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
         await new Promise(resolve => setTimeout(resolve, 100))
       }
 
-      const signer = createWalletSigner(walletClient, address)
+      // Detect wallet type and create appropriate signer
+      const { signer, walletTypeInfo: detectedWalletType } = await createSignerForWallet(
+        walletClient,
+        publicClient,
+        address,
+        connectorId,
+        chainId
+      )
+      setWalletTypeInfo(detectedWalletType)
+
       const dbPath = `xmtp-mwt-wallet-${address.toLowerCase()}`
 
       const newClient = await Client.create(signer, {
@@ -182,6 +207,7 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
         inboxId: newClient.inboxId,
         network: XMTP_NETWORK,
         gateway: USE_GATEWAY ? GATEWAY_URL : 'disabled',
+        walletType: detectedWalletType.type,
       })
 
       if (import.meta.env.DEV) {
@@ -200,6 +226,7 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
       clientRef.current = null
       setActiveUserId(null)
       setInboxId(null)
+      setWalletTypeInfo(null)
       setIsLoadingConversations(false)
     } finally {
       setIsConnecting(false)
@@ -220,6 +247,7 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
         setIsLoadingConversations,
         error,
         inboxId,
+        walletTypeInfo,
       }}
     >
       {children}

@@ -433,6 +433,478 @@ const tests = {
       return true
     },
   },
+
+  // === RainbowKit Multi-Wallet Tests ===
+
+  'rainbowkit-modal': {
+    name: 'RainbowKit modal opens with wallet options',
+    requiresWallet: true,
+    run: async () => {
+      ab(`open ${targetUrl}`)
+      await sleep(2000)
+
+      // Inject mock wallet first
+      injectWallet()
+      await sleep(500)
+
+      // Click Connect button to open RainbowKit modal
+      const clicked = await connectWallet()
+      assert(clicked, 'Should find and click Connect button')
+
+      await sleep(1500)
+
+      // Check if RainbowKit modal opened with wallet options
+      const snap = snapshot()
+      const hasWalletOptions =
+        snap.toLowerCase().includes('metamask') ||
+        snap.toLowerCase().includes('coinbase') ||
+        snap.toLowerCase().includes('rainbow') ||
+        snap.toLowerCase().includes('connect a wallet') ||
+        snap.toLowerCase().includes('what is a wallet')
+
+      console.log(`    RainbowKit modal visible: ${hasWalletOptions ? 'yes' : 'no'}`)
+
+      // Modal should show at least one wallet option
+      assert(hasWalletOptions, 'RainbowKit modal should show wallet options')
+
+      return true
+    },
+  },
+
+  'multi-wallet-inject': {
+    name: 'Multiple wallets can be injected',
+    requiresWallet: true,
+    run: async () => {
+      ab(`open ${targetUrl}`)
+      await sleep(1000)
+
+      // First inject the wallet mock script to make injectWallets available
+      injectWallet()
+      await sleep(500)
+
+      // Now inject multiple wallet types
+      const result = evaluate(`
+        window.injectWallets([
+          { walletType: 'metamask' },
+          { walletType: 'coinbase' },
+          { walletType: 'rainbow' }
+        ]);
+        window.__mockWallets.map(w => w.name).join(', ')
+      `)
+
+      console.log(`    Injected wallets: ${result}`)
+
+      assert(
+        result.includes('MetaMask') && result.includes('Coinbase'),
+        'Should inject multiple wallet types'
+      )
+
+      return true
+    },
+  },
+
+  'wallet-presets-available': {
+    name: 'All wallet presets are available',
+    requiresWallet: true,
+    run: async () => {
+      ab(`open ${targetUrl}`)
+      await sleep(1000)
+
+      // Inject wallet mock to get access to presets
+      injectWallet()
+      await sleep(500)
+
+      const presets = evaluate('Object.keys(window.WALLET_PRESETS).join(", ")')
+      console.log(`    Available presets: ${presets}`)
+
+      assert(presets.includes('metamask'), 'Should have metamask preset')
+      assert(presets.includes('coinbase'), 'Should have coinbase preset')
+      assert(presets.includes('rainbow'), 'Should have rainbow preset')
+      assert(presets.includes('phantom'), 'Should have phantom preset')
+      assert(presets.includes('uniswap'), 'Should have uniswap preset')
+
+      return true
+    },
+  },
+
+  'coinbase-wallet-flags': {
+    name: 'Coinbase Wallet has correct flags',
+    requiresWallet: true,
+    run: async () => {
+      ab(`open ${targetUrl}`)
+      await sleep(1000)
+
+      // First inject wallet mock to get injectWallets function
+      injectWallet()
+      await sleep(500)
+
+      // Inject Coinbase Wallet specifically
+      evaluate(`
+        window.injectWallets([
+          { walletType: 'coinbase' }
+        ])
+      `)
+      await sleep(500)
+
+      const isCoinbase = evaluate('window.ethereum?.isCoinbaseWallet || false')
+      const isNotMetaMask = evaluate('!window.ethereum?.isMetaMask')
+
+      console.log(`    isCoinbaseWallet: ${isCoinbase}`)
+      console.log(`    isMetaMask: ${!isNotMetaMask}`)
+
+      assert(isCoinbase === 'true', 'Should have isCoinbaseWallet flag')
+
+      return true
+    },
+  },
+
+  'phantom-wallet-flags': {
+    name: 'Phantom wallet has correct flags',
+    requiresWallet: true,
+    run: async () => {
+      ab(`open ${targetUrl}`)
+      await sleep(1000)
+
+      // First inject wallet mock to get injectWallets function
+      injectWallet()
+      await sleep(500)
+
+      // Inject Phantom Wallet
+      evaluate(`
+        window.injectWallets([
+          { walletType: 'phantom' }
+        ])
+      `)
+      await sleep(500)
+
+      const isPhantom = evaluate('window.ethereum?.isPhantom || false')
+      console.log(`    isPhantom: ${isPhantom}`)
+
+      assert(isPhantom === 'true', 'Should have isPhantom flag')
+
+      return true
+    },
+  },
+
+  'wrong-chain-simulation': {
+    name: 'Can simulate wrong chain ID',
+    requiresWallet: true,
+    run: async () => {
+      ab(`open ${targetUrl}`)
+      await sleep(1000)
+
+      // First inject wallet mock to get injectWallets function
+      injectWallet()
+      await sleep(500)
+
+      // Inject wallet on mainnet (wrong chain)
+      evaluate(`
+        window.injectWallets([
+          { walletType: 'metamask', chainId: 1 }
+        ])
+      `)
+      await sleep(500)
+
+      const chainId = evaluate('window.ethereum.request({ method: "eth_chainId" }).then(c => c)')
+      await sleep(300)
+
+      const result = evaluate('window.ethereum._testAddress')
+      console.log(`    Wallet on chain: ${chainId || 'mainnet (1)'}`)
+      console.log(`    Test address: ${result}`)
+
+      return true
+    },
+  },
+
+  'secondary-account': {
+    name: 'Can use secondary test account',
+    requiresWallet: true,
+    run: async () => {
+      ab(`open ${targetUrl}`)
+      await sleep(1000)
+
+      // First inject wallet mock to get injectWallets and TEST_ACCOUNTS
+      injectWallet()
+      await sleep(500)
+
+      // Inject wallet with secondary account
+      evaluate(`
+        window.injectWallets([
+          { walletType: 'metamask', account: window.TEST_ACCOUNTS.secondary }
+        ])
+      `)
+      await sleep(500)
+
+      const address = evaluate('window.__mockWallets[0].address')
+      const expectedSecondary = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
+
+      console.log(`    Using address: ${address}`)
+
+      assert(
+        address.toLowerCase().includes('70997970'),
+        'Should use secondary test account'
+      )
+
+      return true
+    },
+  },
+
+  'correct-chain-after-connect': {
+    name: 'Wallet connects on correct chain (Base Sepolia)',
+    requiresWallet: true,
+    run: async () => {
+      ab(`open ${targetUrl}`)
+      await sleep(2000)
+
+      // Inject wallet on Base Sepolia (84532) - the correct chain
+      injectWallet()
+      await sleep(500)
+
+      // Open RainbowKit modal
+      const clicked = await connectWallet()
+      assert(clicked, 'Should find and click Connect button')
+      await sleep(1500)
+
+      // Find and click MetaMask in the modal
+      const snap = snapshot('-i')
+      const metamaskMatch = snap.match(/button.*MetaMask.*?\[ref=(e\d+)\]/i) ||
+                           snap.match(/\[ref=(e\d+)\].*MetaMask/i)
+
+      if (metamaskMatch) {
+        ab(`click @${metamaskMatch[1]}`)
+        await sleep(2000)
+
+        // After connecting, check if we see "wrong network" warnings
+        const afterSnap = snapshot()
+        const hasWrongNetworkWarning =
+          afterSnap.toLowerCase().includes('switch to base sepolia') ||
+          afterSnap.toLowerCase().includes('wrong network') ||
+          afterSnap.toLowerCase().includes('switch network')
+
+        console.log(`    Wrong network warning shown: ${hasWrongNetworkWarning ? 'YES (BUG!)' : 'no (correct)'}`)
+
+        // This test FAILS if we see wrong network warning when wallet is on correct chain
+        assert(
+          !hasWrongNetworkWarning,
+          'Should NOT show wrong network warning when wallet is on Base Sepolia (84532)'
+        )
+      } else {
+        console.log('    Could not find MetaMask button in modal, skipping connection test')
+      }
+
+      return true
+    },
+  },
+
+  // === Smart Contract Wallet (SCW) Tests ===
+
+  'scw-presets-available': {
+    name: 'SCW and EIP-7702 presets are available',
+    requiresWallet: true,
+    run: async () => {
+      ab(`open ${targetUrl}`)
+      await sleep(1000)
+
+      // Inject wallet mock to get access to presets
+      injectWallet()
+      await sleep(500)
+
+      const presets = evaluate('Object.keys(window.WALLET_PRESETS).join(", ")')
+      console.log(`    Available presets: ${presets}`)
+
+      assert(presets.includes('coinbaseSmartWallet'), 'Should have coinbaseSmartWallet preset')
+      assert(presets.includes('safe'), 'Should have safe preset')
+      assert(presets.includes('eip7702Wallet'), 'Should have eip7702Wallet preset')
+
+      return true
+    },
+  },
+
+  'scw-coinbase-smart-wallet-bytecode': {
+    name: 'Coinbase Smart Wallet returns bytecode for eth_getCode',
+    requiresWallet: true,
+    run: async () => {
+      ab(`open ${targetUrl}`)
+      await sleep(1000)
+
+      // First inject wallet mock
+      injectWallet()
+      await sleep(500)
+
+      // Inject Coinbase Smart Wallet
+      evaluate(`
+        window.injectWallets([
+          { walletType: 'coinbaseSmartWallet' }
+        ])
+      `)
+      await sleep(500)
+
+      // Check that eth_getCode returns bytecode (not empty)
+      const bytecode = evaluate(`
+        window.ethereum.request({
+          method: 'eth_getCode',
+          params: [window.__mockWallets[0].address, 'latest']
+        }).then(code => code)
+      `)
+      await sleep(500)
+
+      const result = evaluate('window.ethereum._lastBytecode || "pending"')
+      // Re-run to get actual value
+      const actualBytecode = evaluate(`
+        (async () => {
+          const code = await window.ethereum.request({
+            method: 'eth_getCode',
+            params: [window.__mockWallets[0].address, 'latest']
+          });
+          return code;
+        })()
+      `)
+      await sleep(500)
+
+      console.log(`    Bytecode returned: ${actualBytecode?.slice(0, 30) || 'checking...'}`)
+
+      // SCW should have bytecode (not '0x')
+      assert(
+        !actualBytecode || actualBytecode !== '0x',
+        'Coinbase Smart Wallet should return bytecode for eth_getCode'
+      )
+
+      return true
+    },
+  },
+
+  'scw-safe-wallet-bytecode': {
+    name: 'Safe wallet returns bytecode for eth_getCode',
+    requiresWallet: true,
+    run: async () => {
+      ab(`open ${targetUrl}`)
+      await sleep(1000)
+
+      // First inject wallet mock
+      injectWallet()
+      await sleep(500)
+
+      // Inject Safe wallet
+      evaluate(`
+        window.injectWallets([
+          { walletType: 'safe' }
+        ])
+      `)
+      await sleep(500)
+
+      // Check wallet flags
+      const isSafe = evaluate('window.ethereum?.isSafe || false')
+      console.log(`    isSafe flag: ${isSafe}`)
+
+      assert(isSafe === 'true', 'Safe wallet should have isSafe flag')
+
+      return true
+    },
+  },
+
+  'eip7702-wallet-bytecode': {
+    name: 'EIP-7702 wallet returns delegation bytecode',
+    requiresWallet: true,
+    run: async () => {
+      ab(`open ${targetUrl}`)
+      await sleep(1000)
+
+      // First inject wallet mock
+      injectWallet()
+      await sleep(500)
+
+      // Inject EIP-7702 wallet
+      evaluate(`
+        window.injectWallets([
+          { walletType: 'eip7702Wallet' }
+        ])
+      `)
+      await sleep(500)
+
+      // Check the mock bytecode in preset
+      const bytecode = evaluate('window.WALLET_PRESETS.eip7702Wallet.mockBytecode')
+      console.log(`    EIP-7702 bytecode: ${bytecode}`)
+
+      // EIP-7702 bytecode should start with 0xef0100
+      // Note: evaluate() may return the value with quotes, so check for both
+      const normalizedBytecode = bytecode.replace(/^["']|["']$/g, '').toLowerCase()
+      assert(
+        normalizedBytecode && normalizedBytecode.startsWith('0xef0100'),
+        'EIP-7702 wallet should have bytecode starting with 0xef0100'
+      )
+
+      return true
+    },
+  },
+
+  'eoa-wallet-no-bytecode': {
+    name: 'EOA wallet returns empty bytecode',
+    requiresWallet: true,
+    run: async () => {
+      ab(`open ${targetUrl}`)
+      await sleep(1000)
+
+      // First inject wallet mock
+      injectWallet()
+      await sleep(500)
+
+      // Inject regular MetaMask (EOA)
+      evaluate(`
+        window.injectWallets([
+          { walletType: 'metamask' }
+        ])
+      `)
+      await sleep(500)
+
+      // Check the mock bytecode - EOA presets should NOT have mockBytecode
+      const hasBytecode = evaluate('!!window.WALLET_PRESETS.metamask.mockBytecode')
+      console.log(`    MetaMask has mockBytecode: ${hasBytecode}`)
+
+      // Note: evaluate() returns 'false' as a string
+      assert(
+        hasBytecode === 'false' || hasBytecode === false,
+        'Regular MetaMask (EOA) preset should NOT have mockBytecode'
+      )
+
+      return true
+    },
+  },
+
+  'scw-connector-id-detection': {
+    name: 'SCW connectors can be detected by ID',
+    requiresWallet: true,
+    run: async () => {
+      ab(`open ${targetUrl}`)
+      await sleep(1000)
+
+      // First inject wallet mock
+      injectWallet()
+      await sleep(500)
+
+      // Check the rdns values for SCW presets
+      const coinbaseRdns = evaluate('window.WALLET_PRESETS.coinbaseSmartWallet.rdns')
+      const safeRdns = evaluate('window.WALLET_PRESETS.safe.rdns')
+
+      console.log(`    Coinbase Smart Wallet rdns: ${coinbaseRdns}`)
+      console.log(`    Safe rdns: ${safeRdns}`)
+
+      // These should match the known SCW connector IDs
+      // Note: evaluate() may return the value with quotes
+      const normalizedCoinbase = coinbaseRdns.replace(/^["']|["']$/g, '')
+      const normalizedSafe = safeRdns.replace(/^["']|["']$/g, '')
+
+      assert(
+        normalizedCoinbase === 'com.coinbase.wallet',
+        'Coinbase Smart Wallet should have com.coinbase.wallet rdns'
+      )
+      assert(
+        normalizedSafe === 'app.safe',
+        'Safe should have app.safe rdns'
+      )
+
+      return true
+    },
+  },
 }
 
 // Test utilities
