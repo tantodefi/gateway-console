@@ -77,13 +77,19 @@ export const FEE_CONSTANTS = {
   picodollarsPerDollar: 1_000_000_000_000n,
 } as const
 
-// Gateway configuration
-export const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:5050'
+// XMTP Network configuration
+// 'dev' = direct connection to dev network (no gateway)
+// 'testnet' = connect through gateway (uses 'dev' SDK env internally until testnet is supported)
+export type XmtpNetwork = 'dev' | 'testnet'
+export const XMTP_NETWORK: XmtpNetwork =
+  (import.meta.env.VITE_XMTP_NETWORK as XmtpNetwork) || 'dev'
 
-// Health endpoint is now served on the same port as the gateway
-export const GATEWAY_HEALTH_URL =
-  import.meta.env.VITE_GATEWAY_HEALTH_URL ||
-  GATEWAY_URL.replace(/\/$/, '') + '/health'
+// Gateway configuration - only used when XMTP_NETWORK is 'testnet'
+export const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'https://localhost:5050'
+
+// Helper to check if gateway should be used
+export const USE_GATEWAY = XMTP_NETWORK === 'testnet'
+
 export const APP_NAME = import.meta.env.VITE_APP_NAME as string | undefined
 export const CONTRACTS_ENVIRONMENT = import.meta.env.VITE_CONTRACTS_ENVIRONMENT as string | undefined
 

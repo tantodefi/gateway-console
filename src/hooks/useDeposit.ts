@@ -125,14 +125,6 @@ export function useDeposit() {
         currentGas
       )
 
-      console.log('[Deposit] Split calculation:', {
-        depositAmount: amount.toString(),
-        currentMessaging: currentMessaging.toString(),
-        currentGas: currentGas.toString(),
-        payerAmount: payerAmount.toString(),
-        appChainAmount: appChainAmount.toString(),
-      })
-
       // Store for optimistic updates
       lastDepositRef.current = { payerAmount, appChainAmount }
 
