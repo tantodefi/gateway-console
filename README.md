@@ -21,11 +21,78 @@ XMTP uses an "apps pay, not users" model—your app covers messaging costs, not 
 
 Visit the [live demo](https://xmtp-gateway-console.up.railway.app/)—no setup required.
 
-The hosted version connects to a shared gateway. You can:
+The hosted version connects directly to the XMTP v3 dev network. You can:
 1. Mint testnet tokens using the Faucet
 2. Deposit funds to the gateway's payer balance
 3. Create test users and send messages
-4. Watch the gateway pay for each message in real-time
+4. See fee calculations and balance updates in real-time
+
+---
+
+## Gateway Status (Work in Progress)
+
+> **Note:** Gateway integration is currently a work in progress. The demo and default configuration connect directly to the XMTP v3 dev network without routing through a gateway.
+
+The XMTP Gateway Service allows apps to pay for user messages. While the gateway service exists and can be run locally, the SDK integration is still being finalized. Currently:
+
+- **Default mode (`VITE_XMTP_NETWORK=dev`)**: Connects directly to XMTP dev network. Messages work, but aren't routed through your gateway.
+- **Gateway mode (`VITE_XMTP_NETWORK=testnet`)**: Attempts to route through your gateway. This mode is experimental and may not work reliably yet.
+
+### Testing the Gateway (Experimental)
+
+If you want to test the gateway integration locally:
+
+#### 1. Generate TLS certificates
+
+The XMTP SDK requires TLS when connecting through a gateway. Generate self-signed certs for local development:
+
+```bash
+mkdir -p certs
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout certs/localhost.key -out certs/localhost.crt \
+  -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+```
+
+#### 2. Configure environment
+
+In `.env.local`, set:
+
+```bash
+# Enable gateway routing (experimental)
+VITE_XMTP_NETWORK=testnet
+
+# Gateway URL with HTTPS (required for TLS)
+VITE_GATEWAY_URL=https://localhost:5050
+```
+
+#### 3. Start the gateway with TLS
+
+The `docker-compose.yml` includes an Envoy proxy configured for TLS. With certs in place:
+
+```bash
+docker-compose up -d
+```
+
+This starts:
+- **Redis** on port 6777
+- **Gateway service** (internal)
+- **Envoy proxy** on port 5050 with TLS termination
+
+#### 4. Trust the certificate
+
+Since the certificate is self-signed, you'll need to either:
+- Visit `https://localhost:5050` in your browser and accept the security warning
+- Add the certificate to your system's trusted certificates
+
+#### 5. Verify gateway status
+
+The app shows gateway connectivity status in the sidebar. When properly configured, it should show "Gateway Connected".
+
+### Known Issues
+
+- TLS channel mismatch errors may occur if the gateway URL protocol doesn't match the node URLs
+- The SDK currently infers TLS settings from the gateway URL, which can cause issues with mixed configurations
+- Gateway mode requires the gateway service to successfully connect to XMTP network nodes
 
 ---
 

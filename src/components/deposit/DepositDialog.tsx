@@ -104,17 +104,9 @@ export function DepositDialog() {
 
   // Optimistically update gas reserve balance on successful deposit
   useEffect(() => {
-    console.log('[Deposit] Optimistic update check:', {
-      status,
-      lastDeposit: lastDeposit ? {
-        payerAmount: lastDeposit.payerAmount.toString(),
-        appChainAmount: lastDeposit.appChainAmount.toString(),
-      } : null,
-    })
     if (status === 'success' && lastDeposit && lastDeposit.appChainAmount > 0n) {
       // Convert from 6 decimals (deposit token) to 18 decimals (native gas token)
       const appChainAmount18Decimals = lastDeposit.appChainAmount * 10n ** 12n
-      console.log('[Deposit] Applying optimistic update:', appChainAmount18Decimals.toString())
       addOptimisticDeposit(appChainAmount18Decimals)
     }
   }, [status, lastDeposit, addOptimisticDeposit])

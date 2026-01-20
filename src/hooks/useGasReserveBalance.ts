@@ -76,16 +76,6 @@ export function useGasReserveBalance() {
   // Extract balance value (in 18 decimals - native xUSD on appchain)
   const chainBalance = balanceData?.value ?? 0n
 
-  // Debug logging
-  console.log('[GasReserve] Balance query:', {
-    address: GATEWAY_PAYER_ADDRESS,
-    chainId: XMTP_CHAIN_ID,
-    balanceData,
-    chainBalance: chainBalance.toString(),
-    isLoading,
-    error: error?.message,
-  })
-
   // Clear optimistic amount when chain balance catches up to expected total
   useEffect(() => {
     if (currentOptimisticAmount > 0n && chainBalance >= currentExpectedTotal) {

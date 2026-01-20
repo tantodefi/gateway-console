@@ -8,14 +8,12 @@ export function GatewayStatus() {
     connected: 'bg-emerald-500',
     disconnected: 'bg-red-500',
     checking: 'bg-amber-500 animate-pulse',
-    unconfigured: 'bg-zinc-600',
   }[status]
 
   const statusText = {
     connected: 'Gateway Connected',
     disconnected: 'Gateway Offline',
     checking: 'Checking',
-    unconfigured: 'Not configured',
   }[status]
 
   return (
@@ -46,14 +44,12 @@ export function GatewayStatusCompact() {
     connected: 'bg-emerald-500',
     disconnected: 'bg-red-500',
     checking: 'bg-amber-500 animate-pulse',
-    unconfigured: 'bg-zinc-600',
   }[status]
 
   const statusText = {
     connected: 'Gateway Connected',
     disconnected: 'Gateway Offline',
     checking: 'Checking...',
-    unconfigured: 'Not configured',
   }[status]
 
   return (

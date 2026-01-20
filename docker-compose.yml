@@ -20,12 +20,22 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - redis
-    ports:
-      - "5050:5872"
     env_file:
       - .env.local
     environment:
       - XMTPD_REDIS_URL=redis://redis:6777
-      - XMTPD_API_PORT=5872
-      - XMTPD_API_CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:3000
+      - XMTPD_API_PORT=5050
+    restart: unless-stopped
+
+  # gRPC-web proxy - translates browser gRPC-web requests to native gRPC
+  grpcwebproxy:
+    image: envoyproxy/envoy:v1.31-latest
+    ports:
+      - "5050:8080"
+      - "9901:9901"  # Envoy admin interface for debugging
+    volumes:
+      - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - ./certs:/etc/envoy/certs:ro
+    depends_on:
+      - gateway
     restart: unless-stopped

@@ -8,7 +8,11 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "node tests/e2e/test-runner.js",
+    "test:e2e:verbose": "node tests/e2e/test-runner.js --verbose",
+    "test:e2e:wallet": "node tests/e2e/test-runner.js --with-wallet --verbose",
+    "test:e2e:shell": "bash tests/e2e/run-tests.sh"
   },
   "dependencies": {
     "@coinbase/wallet-sdk": "^4.3.7",
@@ -20,7 +24,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@tanstack/react-query": "^5.90.16",
-    "@xmtp/browser-sdk": "^6.1.0",
+    "@xmtp/browser-sdk": "^6.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.562.0",
