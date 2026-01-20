@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useAccount, useWalletClient, useEnsName, useEnsAvatar, useDisconnect } from 'wagmi'
+import { useAccount, useWalletClient, usePublicClient, useEnsName, useEnsAvatar, useDisconnect, useChainId } from 'wagmi'
 import { mainnet } from 'wagmi/chains'
 import { Wallet, Copy, Check, X } from 'lucide-react'
 import { useXMTP, WALLET_USER_ID } from '@/contexts/XMTPContext'
@@ -12,8 +12,10 @@ function truncateAddress(address: string): string {
 
 export function ConnectedWalletCard() {
   const [copied, setCopied] = useState(false)
-  const { address, isConnected } = useAccount()
+  const { address, isConnected, connector } = useAccount()
   const { data: walletClient } = useWalletClient()
+  const publicClient = usePublicClient()
+  const chainId = useChainId()
   const { disconnect } = useDisconnect()
   const { initializeWithWallet, activeUserId, isConnecting } = useXMTP()
   const { selectUser } = useUsers()
@@ -49,9 +51,11 @@ export function ConnectedWalletCard() {
   const displayName = ensName ?? 'Connected Wallet'
 
   const handleSelect = async () => {
-    if (!walletClient || isActive || isConnecting) return
+    if (!walletClient || !publicClient || isActive || isConnecting) return
     selectUser('') // Clear ephemeral selection immediately
-    await initializeWithWallet(walletClient, address)
+    const connectorId = connector?.id ?? 'unknown'
+    // Cast publicClient to satisfy type checker - wagmi/viem type incompatibility
+    await initializeWithWallet(walletClient, publicClient as Parameters<typeof initializeWithWallet>[1], address, connectorId, chainId)
     // Navigate to conversations on mobile
     if (isMobile) {
       showConversations()

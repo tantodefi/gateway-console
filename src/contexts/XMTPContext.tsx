@@ -7,10 +7,11 @@ import {
   type ReactNode,
 } from 'react'
 import { Client, LogLevel } from '@xmtp/browser-sdk'
-import { createEphemeralSigner, createWalletSigner } from '@/lib/xmtp-signer'
+import { createEphemeralSigner, createSignerForWallet, isCoinbaseWallet } from '@/lib/xmtp-signer'
 import { GATEWAY_URL, USE_GATEWAY, XMTP_NETWORK } from '@/lib/constants'
 import type { EphemeralUser } from '@/types/user'
-import type { WalletClient, Address } from 'viem'
+import type { WalletTypeInfo } from '@/types/wallet-type'
+import type { WalletClient, Address, PublicClient } from 'viem'
 
 // Special ID to identify when the connected wallet is the active user
 export const WALLET_USER_ID = '__connected_wallet__'
@@ -19,13 +20,20 @@ interface XMTPContextValue {
   client: Client | null
   activeUserId: string | null
   initializeClient: (user: EphemeralUser) => Promise<void>
-  initializeWithWallet: (walletClient: WalletClient, address: Address) => Promise<void>
+  initializeWithWallet: (
+    walletClient: WalletClient,
+    publicClient: PublicClient,
+    address: Address,
+    connectorId: string,
+    chainId: number
+  ) => Promise<void>
   disconnect: () => Promise<void>
   isConnecting: boolean
   isLoadingConversations: boolean
   setIsLoadingConversations: (loading: boolean) => void
   error: Error | null
   inboxId: string | null
+  walletTypeInfo: WalletTypeInfo | null
 }
 
 const XMTPContext = createContext<XMTPContextValue | null>(null)
@@ -41,12 +49,28 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
   const [isLoadingConversations, setIsLoadingConversations] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [inboxId, setInboxId] = useState<string | null>(null)
+  const [walletTypeInfo, setWalletTypeInfo] = useState<WalletTypeInfo | null>(null)
 
   // Track the current client ref for cleanup (avoids stale closure issues)
   const clientRef = useRef<Client | null>(null)
 
   // Track if we're in the middle of an operation to prevent concurrent calls
   const operationInProgress = useRef(false)
+
+  // Helper to close existing client (OPFS only allows one client at a time)
+  const closeExistingClient = useCallback(async () => {
+    if (clientRef.current) {
+      try {
+        await clientRef.current.close()
+      } catch (e) {
+        console.warn('[XMTP] Error closing previous client:', e)
+      }
+      clientRef.current = null
+      setClient(null)
+      // Small delay for OPFS cleanup
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+  }, [])
 
   const disconnect = useCallback(async () => {
     if (clientRef.current) {
@@ -61,6 +85,7 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
     setActiveUserId(null)
     setInboxId(null)
     setError(null)
+    setWalletTypeInfo(null)
   }, [])
 
   const initializeClient = useCallback(async (user: EphemeralUser) => {
@@ -82,17 +107,7 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
     console.log('[XMTP] Creating client for', user.name, '...')
 
     try {
-      // Close existing client before creating new one (OPFS limitation)
-      if (clientRef.current) {
-        try {
-          await clientRef.current.close()
-        } catch (e) {
-          console.warn('[XMTP] Error closing previous client:', e)
-        }
-        clientRef.current = null
-        setClient(null)
-        await new Promise(resolve => setTimeout(resolve, 100))
-      }
+      await closeExistingClient()
 
       const signer = createEphemeralSigner(user.privateKey)
       const dbPath = `xmtp-mwt-${user.id}`
@@ -133,9 +148,15 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
       setIsConnecting(false)
       operationInProgress.current = false
     }
-  }, [activeUserId])
+  }, [activeUserId, closeExistingClient])
 
-  const initializeWithWallet = useCallback(async (walletClient: WalletClient, address: Address) => {
+  const initializeWithWallet = useCallback(async (
+    walletClient: WalletClient,
+    publicClient: PublicClient,
+    address: Address,
+    connectorId: string,
+    chainId: number
+  ) => {
     // Skip if already connected as wallet
     if (clientRef.current && activeUserId === WALLET_USER_ID) {
       return
@@ -154,19 +175,18 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
     console.log('[XMTP] Creating client for wallet', address.slice(0, 10) + '...', '...')
 
     try {
-      // Close existing client before creating new one (OPFS limitation)
-      if (clientRef.current) {
-        try {
-          await clientRef.current.close()
-        } catch (e) {
-          console.warn('[XMTP] Error closing previous client:', e)
-        }
-        clientRef.current = null
-        setClient(null)
-        await new Promise(resolve => setTimeout(resolve, 100))
-      }
+      await closeExistingClient()
 
-      const signer = createWalletSigner(walletClient, address)
+      // Detect wallet type and create appropriate signer
+      const { signer, walletTypeInfo: detectedWalletType } = await createSignerForWallet(
+        walletClient,
+        publicClient,
+        address,
+        connectorId,
+        chainId
+      )
+      setWalletTypeInfo(detectedWalletType)
+
       const dbPath = `xmtp-mwt-wallet-${address.toLowerCase()}`
 
       const newClient = await Client.create(signer, {
@@ -182,6 +202,7 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
         inboxId: newClient.inboxId,
         network: XMTP_NETWORK,
         gateway: USE_GATEWAY ? GATEWAY_URL : 'disabled',
+        walletType: detectedWalletType.type,
       })
 
       if (import.meta.env.DEV) {
@@ -193,19 +214,45 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
       setActiveUserId(WALLET_USER_ID)
       setInboxId(newClient.inboxId ?? null)
     } catch (e) {
-      const err = e instanceof Error ? e : new Error('Failed to initialize XMTP client with wallet')
-      console.error('[XMTP] Client creation failed:', err.message)
-      setError(err)
+      const originalError = e instanceof Error ? e : new Error('Failed to initialize XMTP client with wallet')
+      console.error('[XMTP] Client creation failed:', originalError.message)
+
+      // Provide more helpful error messages for common SCW issues
+      let userFriendlyError = originalError
+      const errorMsg = originalError.message.toLowerCase()
+
+      if (errorMsg.includes('signature') && (errorMsg.includes('valid') || errorMsg.includes('verif'))) {
+        // SCW signature validation failed - provide helpful context
+        console.error('[XMTP] SCW signature validation failed.')
+        console.error('  - Connected chain:', chainId)
+        console.error('  - Connector:', connectorId)
+        console.error('  - Wallet type:', detectedWalletType.type)
+
+        // Only show Coinbase Smart Wallet error if it's actually an SCW (not an EOA via Coinbase Wallet)
+        if (detectedWalletType.type === 'SCW' && isCoinbaseWallet(connectorId)) {
+          userFriendlyError = new Error(
+            'COINBASE_SMART_WALLET_UNSUPPORTED: Coinbase Smart Wallets use passkey signatures which are not yet supported by XMTP outside of the Base app.'
+          )
+        } else if (detectedWalletType.type === 'SCW') {
+          userFriendlyError = new Error(
+            `Smart wallet signature verification failed. XMTP may not fully support this wallet type yet. ` +
+            `Try using an EOA wallet (like MetaMask) instead.`
+          )
+        }
+      }
+
+      setError(userFriendlyError)
       setClient(null)
       clientRef.current = null
       setActiveUserId(null)
       setInboxId(null)
+      setWalletTypeInfo(null)
       setIsLoadingConversations(false)
     } finally {
       setIsConnecting(false)
       operationInProgress.current = false
     }
-  }, [activeUserId])
+  }, [activeUserId, closeExistingClient])
 
   return (
     <XMTPContext.Provider
@@ -220,6 +267,7 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
         setIsLoadingConversations,
         error,
         inboxId,
+        walletTypeInfo,
       }}
     >
       {children}
