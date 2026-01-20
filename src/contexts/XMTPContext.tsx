@@ -226,12 +226,14 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
         console.error('[XMTP] SCW signature validation failed.')
         console.error('  - Connected chain:', chainId)
         console.error('  - Connector:', connectorId)
+        console.error('  - Wallet type:', detectedWalletType.type)
 
-        if (isCoinbaseWallet(connectorId)) {
+        // Only show Coinbase Smart Wallet error if it's actually an SCW (not an EOA via Coinbase Wallet)
+        if (detectedWalletType.type === 'SCW' && isCoinbaseWallet(connectorId)) {
           userFriendlyError = new Error(
             'COINBASE_SMART_WALLET_UNSUPPORTED: Coinbase Smart Wallets use passkey signatures which are not yet supported by XMTP outside of the Base app.'
           )
-        } else {
+        } else if (detectedWalletType.type === 'SCW') {
           userFriendlyError = new Error(
             `Smart wallet signature verification failed. XMTP may not fully support this wallet type yet. ` +
             `Try using an EOA wallet (like MetaMask) instead.`

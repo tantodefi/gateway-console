@@ -7,21 +7,14 @@ import type { WalletTypeInfo } from '@/types/wallet-type'
 /** EIP-7702 delegation designator prefix */
 const EIP7702_PREFIX = '0xef0100'
 
-/** Coinbase Smart Wallet connector IDs */
+/** Coinbase wallet connector IDs (supports both EOA and Smart Wallet) */
 export const COINBASE_CONNECTOR_IDS = [
   'coinbase',
   'coinbaseWalletSDK',
   'com.coinbase.wallet',
 ] as const
 
-/** Known smart contract wallet connector IDs */
-const SCW_CONNECTOR_IDS = [
-  ...COINBASE_CONNECTOR_IDS,
-  'safe',
-  'app.safe',
-]
-
-/** Check if a connector is a Coinbase Smart Wallet */
+/** Check if a connector is Coinbase Wallet */
 export function isCoinbaseWallet(connectorId: string): boolean {
   return COINBASE_CONNECTOR_IDS.includes(connectorId as typeof COINBASE_CONNECTOR_IDS[number])
 }
@@ -94,10 +87,13 @@ export function createSCWSigner(
 }
 
 /**
- * Detects the wallet type by checking connector ID and on-chain bytecode.
+ * Detects the wallet type by checking on-chain bytecode.
  * - EOA: No bytecode (empty)
  * - EIP-7702: Bytecode starts with 0xef0100 (delegation designator)
- * - SCW: Known connector ID or has bytecode
+ * - SCW: Has bytecode (smart contract wallet like Coinbase Smart Wallet, Safe)
+ *
+ * Note: We always check bytecode rather than relying on connector ID because
+ * wallets like Coinbase support both EOAs and Smart Wallets.
  */
 export async function detectWalletType(
   publicClient: PublicClient,
@@ -105,15 +101,10 @@ export async function detectWalletType(
   connectorId: string,
   chainId: number
 ): Promise<WalletTypeInfo> {
-  // First check connector ID for known SCW wallets
-  if (SCW_CONNECTOR_IDS.includes(connectorId)) {
-    return { type: 'SCW', connectorId, chainId }
-  }
-
   try {
     const bytecode = await publicClient.getCode({ address })
 
-    // No bytecode = EOA
+    // No bytecode = EOA (even if using Coinbase Wallet connector)
     if (!bytecode || bytecode === '0x') {
       return { type: 'EOA', connectorId, chainId }
     }
