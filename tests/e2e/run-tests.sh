@@ -3,7 +3,7 @@
 # Gateway Console E2E Tests using agent-browser
 # Usage: ./run-tests.sh [test-name]
 # Run all tests: ./run-tests.sh
-# Run specific test: ./run-tests.sh wallet-connect
+# Run specific test: ./run-tests.sh page-load
 
 set -e
 
@@ -157,8 +157,8 @@ test_interactive_elements() {
 test_desktop_layout() {
     log_info "Testing: Desktop layout..."
 
-    agent-browser set viewport 1280 800 --session "$SESSION_NAME"
     agent-browser open "$BASE_URL" --session "$SESSION_NAME"
+    agent-browser set viewport 1280 800 --session "$SESSION_NAME"
     sleep 2
 
     SNAPSHOT=$(agent-browser snapshot --session "$SESSION_NAME")
@@ -177,8 +177,8 @@ test_desktop_layout() {
 test_mobile_layout() {
     log_info "Testing: Mobile layout..."
 
-    agent-browser set viewport 375 667 --session "$SESSION_NAME"
     agent-browser open "$BASE_URL" --session "$SESSION_NAME"
+    agent-browser set viewport 375 667 --session "$SESSION_NAME"
     sleep 2
 
     # Take screenshot for visual verification
@@ -198,12 +198,12 @@ run_tests() {
         # Run all tests
         log_info "Running all tests..."
 
-        test_page_load || ((failed++))
-        test_welcome_panel || ((failed++))
-        test_developer_sidebar || ((failed++))
-        test_interactive_elements || ((failed++))
-        test_desktop_layout || ((failed++))
-        test_mobile_layout || ((failed++))
+        test_page_load || failed=$((failed+1))
+        test_welcome_panel || failed=$((failed+1))
+        test_developer_sidebar || failed=$((failed+1))
+        test_interactive_elements || failed=$((failed+1))
+        test_desktop_layout || failed=$((failed+1))
+        test_mobile_layout || failed=$((failed+1))
 
         echo ""
         if [ $failed -eq 0 ]; then

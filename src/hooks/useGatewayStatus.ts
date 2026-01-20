@@ -22,26 +22,20 @@ export function useGatewayStatus() {
     }
 
     try {
-      // Simple connectivity check - any response means gateway is up
-      // Even 4xx/5xx errors indicate the server is running
-      await fetch(GATEWAY_URL, {
-        method: 'POST',
+      // Use /health endpoint which returns 200 OK from Envoy directly
+      const healthUrl = GATEWAY_URL.replace(/\/$/, '') + '/health'
+      await fetch(healthUrl, {
+        method: 'GET',
         signal: AbortSignal.timeout(3000),
       })
       consecutiveFailures.current = 0
       setStatus('connected')
-    } catch (err) {
-      // Check if it's a response error (server responded but with error) vs network error
-      if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
-        // Network error - gateway not reachable
-        consecutiveFailures.current++
-        if (!isBackgroundCheck || consecutiveFailures.current >= 2) {
-          setStatus('disconnected')
-        }
-      } else {
-        // Got some response - gateway is up
-        consecutiveFailures.current = 0
-        setStatus('connected')
+    } catch {
+      // Any error means gateway is not reachable (network error, timeout, CORS, etc.)
+      // Note: fetch() only throws on network failures, not HTTP error responses (4xx/5xx)
+      consecutiveFailures.current++
+      if (!isBackgroundCheck || consecutiveFailures.current >= 2) {
+        setStatus('disconnected')
       }
     }
   }, [])
