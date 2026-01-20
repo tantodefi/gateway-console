@@ -174,18 +174,22 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
 
     console.log('[XMTP] Creating client for wallet', address.slice(0, 10) + '...', '...')
 
+    // Declare outside try block so it's accessible in catch block
+    let detectedWalletType: WalletTypeInfo | null = null
+
     try {
       await closeExistingClient()
 
       // Detect wallet type and create appropriate signer
-      const { signer, walletTypeInfo: detectedWalletType } = await createSignerForWallet(
+      const { signer, walletTypeInfo } = await createSignerForWallet(
         walletClient,
         publicClient,
         address,
         connectorId,
         chainId
       )
-      setWalletTypeInfo(detectedWalletType)
+      detectedWalletType = walletTypeInfo
+      setWalletTypeInfo(walletTypeInfo)
 
       const dbPath = `xmtp-mwt-wallet-${address.toLowerCase()}`
 
@@ -226,14 +230,14 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
         console.error('[XMTP] SCW signature validation failed.')
         console.error('  - Connected chain:', chainId)
         console.error('  - Connector:', connectorId)
-        console.error('  - Wallet type:', detectedWalletType.type)
+        console.error('  - Wallet type:', detectedWalletType?.type ?? 'unknown')
 
         // Only show Coinbase Smart Wallet error if it's actually an SCW (not an EOA via Coinbase Wallet)
-        if (detectedWalletType.type === 'SCW' && isCoinbaseWallet(connectorId)) {
+        if (detectedWalletType?.type === 'SCW' && isCoinbaseWallet(connectorId)) {
           userFriendlyError = new Error(
             'COINBASE_SMART_WALLET_UNSUPPORTED: Coinbase Smart Wallets use passkey signatures which are not yet supported by XMTP outside of the Base app.'
           )
-        } else if (detectedWalletType.type === 'SCW') {
+        } else if (detectedWalletType?.type === 'SCW') {
           userFriendlyError = new Error(
             `Smart wallet signature verification failed. XMTP may not fully support this wallet type yet. ` +
             `Try using an EOA wallet (like MetaMask) instead.`
