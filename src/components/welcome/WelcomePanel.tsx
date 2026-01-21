@@ -1,7 +1,22 @@
-import { Send, ArrowDownToLine } from 'lucide-react'
+import { Send, ArrowDownToLine, Sparkles, ExternalLink } from 'lucide-react'
 import { usePayerBalance } from '@/hooks/usePayerBalance'
 import { useXMTP } from '@/contexts/XMTPContext'
 import { XMTPStatus } from '@/components/xmtp'
+
+function McpBadge() {
+  return (
+    <a
+      href="https://github.com/xmtp/xmtp-docs-mcp"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="absolute bottom-4 right-4 flex items-center gap-1.5 text-[10px] text-zinc-400 hover:text-zinc-600 transition-colors"
+    >
+      <Sparkles className="h-3 w-3" />
+      <span>Built with XMTP MCP</span>
+      <ExternalLink className="h-2.5 w-2.5 opacity-50" />
+    </a>
+  )
+}
 
 export function WelcomePanel() {
   const { error: xmtpError } = useXMTP()
@@ -9,15 +24,16 @@ export function WelcomePanel() {
 
   if (xmtpError) {
     return (
-      <main className="flex-1 flex items-center justify-center p-8">
+      <main className="flex-1 flex items-center justify-center p-8 relative">
         <XMTPStatus />
+        <McpBadge />
       </main>
     )
   }
 
   if (messagesAvailable === 0) {
     return (
-      <main className="flex-1 flex items-center justify-center p-8">
+      <main className="flex-1 flex items-center justify-center p-8 relative">
         <div className="flex items-start gap-8 max-w-lg">
           {/* Left: Visual element */}
           <div className="shrink-0">
@@ -51,12 +67,13 @@ export function WelcomePanel() {
             </div>
           </div>
         </div>
+        <McpBadge />
       </main>
     )
   }
 
   return (
-    <main className="flex-1 flex items-center justify-center p-8">
+    <main className="flex-1 flex items-center justify-center p-8 relative">
       <div className="flex items-start gap-8 max-w-lg">
         {/* Left: Visual element */}
         <div className="shrink-0">
@@ -94,6 +111,7 @@ export function WelcomePanel() {
           </div>
         </div>
       </div>
+      <McpBadge />
     </main>
   )
 }
