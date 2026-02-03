@@ -13,35 +13,44 @@ import { base, baseSepolia, mainnet } from 'wagmi/chains'
 import { SETTLEMENT_CHAIN_RPC_URL, MAINNET_RPC_URL, BASE_MAINNET_RPC_URL } from './constants'
 import { xmtpAppchain } from './chains'
 
-const walletConnectProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
+const walletConnectProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || ''
 
 if (!walletConnectProjectId) {
-  throw new Error(
+  console.warn(
     'Missing VITE_WALLETCONNECT_PROJECT_ID environment variable. ' +
-    'Get a free project ID at https://cloud.walletconnect.com and add it to .env.local'
+    'WalletConnect will be disabled. Get a free project ID at https://cloud.walletconnect.com'
   )
 }
 
+// Build wallet list - only include WalletConnect if project ID is configured
+const popularWallets = [
+  metaMaskWallet,
+  baseAccount,
+  uniswapWallet,
+  rainbowWallet,
+  phantomWallet,
+]
+
+const walletGroups = [
+  {
+    groupName: 'Popular',
+    wallets: popularWallets,
+  },
+]
+
+// Only add WalletConnect group if project ID is available
+if (walletConnectProjectId) {
+  walletGroups.push({
+    groupName: 'More',
+    wallets: [walletConnectWallet],
+  })
+}
+
 const connectors = connectorsForWallets(
-  [
-    {
-      groupName: 'Popular',
-      wallets: [
-        metaMaskWallet,
-        baseAccount,
-        uniswapWallet,
-        rainbowWallet,
-        phantomWallet,
-      ],
-    },
-    {
-      groupName: 'More',
-      wallets: [walletConnectWallet],
-    },
-  ],
+  walletGroups,
   {
     appName: 'XMTP Gateway Console',
-    projectId: walletConnectProjectId,
+    projectId: walletConnectProjectId || 'placeholder', // RainbowKit requires a projectId even if not using WalletConnect
   }
 )
 

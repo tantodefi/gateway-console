@@ -126,32 +126,32 @@ export function YieldDepositDialog() {
     if (usdValue <= 0) return null
 
     return (
-      <div className="space-y-3 p-3 bg-zinc-900/50 rounded-lg border border-zinc-800/50">
-        <div className="flex items-center gap-2 text-sm text-zinc-400">
-          <TrendingUp className="h-4 w-4" />
+      <div className="space-y-3 p-3 bg-zinc-800 rounded-lg border border-zinc-700">
+        <div className="flex items-center gap-2 text-sm text-zinc-200">
+          <TrendingUp className="h-4 w-4 text-emerald-400" />
           <span>Yield Projection ({projection.apyPercent}% APY)</span>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <div className="text-xs text-zinc-500">Monthly Yield</div>
-            <div className="text-sm font-medium text-emerald-400">
+            <div className="text-xs text-zinc-400">Monthly Yield</div>
+            <div className="text-sm font-semibold text-emerald-400">
               {projection.formattedMonthlyYield}
             </div>
           </div>
           <div>
-            <div className="text-xs text-zinc-500">Yearly Yield</div>
-            <div className="text-sm font-medium text-emerald-400">
+            <div className="text-xs text-zinc-400">Yearly Yield</div>
+            <div className="text-sm font-semibold text-emerald-400">
               {projection.formattedYearlyYield}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 p-2 bg-zinc-800/50 rounded">
+        <div className="flex items-center gap-2 p-2 bg-zinc-900 rounded border border-zinc-700">
           <MessageSquare className="h-4 w-4 text-blue-400" />
           <div className="flex-1">
-            <div className="text-xs text-zinc-500">Messages Funded Monthly</div>
-            <div className="text-sm font-bold text-zinc-100">
+            <div className="text-xs text-zinc-400">Messages Funded Monthly</div>
+            <div className="text-sm font-bold text-white">
               ~{projection.formattedMessagesPerMonth} messages
             </div>
           </div>
@@ -169,7 +169,7 @@ export function YieldDepositDialog() {
 
   const renderTiersReference = () => (
     <div className="space-y-2">
-      <div className="text-xs text-zinc-500">Deposit Tiers Reference</div>
+      <div className="text-xs text-zinc-400 font-medium">Deposit Tiers Reference</div>
       <div className="grid grid-cols-3 gap-2 text-xs">
         {tiers.slice(0, 6).map((tier) => (
           <button
@@ -181,10 +181,10 @@ export function YieldDepositDialog() {
                 setAmount(tier.depositUsd.toString())
               }
             }}
-            className="p-2 bg-zinc-800/50 hover:bg-zinc-800 rounded border border-zinc-700/50 text-left transition-colors"
+            className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded border border-zinc-600 text-left transition-colors"
           >
-            <div className="font-medium text-zinc-300">{tier.label}</div>
-            <div className="text-zinc-500">
+            <div className="font-semibold text-white">{tier.label}</div>
+            <div className="text-zinc-300">
               ~{tier.projection.formattedMessagesPerMonth}/mo
             </div>
           </button>
@@ -283,7 +283,7 @@ export function YieldDepositDialog() {
         {/* Balance Display */}
         <div className="flex items-center justify-between text-sm">
           <span className="text-zinc-400">Available Balance</span>
-          <span className="font-mono">
+          <span className="font-mono text-white">
             {formattedBalance} {selectedAsset}
           </span>
         </div>
@@ -303,7 +303,7 @@ export function YieldDepositDialog() {
             </Button>
           </div>
           {usdValue > 0 && selectedAsset !== 'USDC' && (
-            <div className="text-xs text-zinc-500 text-right">
+            <div className="text-xs text-zinc-300 text-right">
               ≈ {formatCurrency(usdValue)}
             </div>
           )}
@@ -326,7 +326,7 @@ export function YieldDepositDialog() {
         {renderTiersReference()}
 
         {/* Info */}
-        <p className="text-xs text-zinc-500 text-center">
+        <p className="text-xs text-zinc-400 text-center">
           Deposits earn yield on Aave V3. Harvest yield anytime to fund your XMTP messages.
         </p>
       </div>
