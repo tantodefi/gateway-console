@@ -221,6 +221,21 @@ Earn yield on your funds while funding XMTP messaging—without spending your pr
 3. **Harvest** – Withdraw just the yield, convert to mUSD, choose deposit destination
 4. **Keep Principal** – Your original deposit stays in Aave earning more yield
 
+### Estimated Message Capacity
+
+Based on current XMTP fee rates (~$0.00005/message) and 3.5% APY:
+
+| Deposit Amount | Monthly Yield | Messages/Month |
+|----------------|---------------|----------------|
+| $100 | $0.29 | ~5,855 |
+| $250 | $0.73 | ~14,637 |
+| $500 | $1.46 | ~29,275 |
+| $1,000 | $2.92 | ~58,550 |
+| $5,000 | $14.58 | ~292,752 |
+| $10,000 | $29.17 | ~585,504 |
+
+*These are estimates. Actual message capacity varies with APY fluctuations and message sizes.*
+
 ### Harvest Destinations
 
 When harvesting yield, you choose where the mUSD is deposited:
