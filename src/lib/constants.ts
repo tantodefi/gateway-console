@@ -98,6 +98,70 @@ export const SETTLEMENT_CHAIN_RPC_URL =
   import.meta.env.VITE_SETTLEMENT_CHAIN_RPC_URL || 'https://sepolia.base.org'
 export const MAINNET_RPC_URL =
   import.meta.env.VITE_MAINNET_RPC_URL || 'https://eth.llamarpc.com'
+
+// =============================================================================
+// AAVE V3 INTEGRATION - Base Sepolia Testnet
+// =============================================================================
+
+/**
+ * Aave V3 Core Protocol Addresses on Base Sepolia
+ * Source: https://github.com/bgd-labs/aave-address-book
+ */
+export const AAVE_V3 = {
+  // Core lending pool - main entry point for supply/withdraw
+  pool: '0x8bAB6d1b75f19e9eD9fCe8b9BD338844fF79aE27' as Address,
+  // Pool addresses provider
+  poolAddressesProvider: '0xE4C23309117Aa30342BFaae6c95c6478e0A4Ad00' as Address,
+  // Pool data provider for reserve info
+  poolDataProvider: '0xBc9f5b7E248451CdD7cA54e717a2BFe1F32b566b' as Address,
+  // UI data provider
+  uiPoolDataProvider: '0x6a9D64f93DB660EaCB2b6E9424792c630CdA87d8' as Address,
+  // WETH Gateway for ETH deposits
+  wethGateway: '0x0568130e794429D2eEBC4dafE18f25Ff1a1ed8b6' as Address,
+} as const
+
+/**
+ * Supported assets for Aave V3 yield deposits on Base Sepolia
+ */
+export const AAVE_ASSETS = {
+  USDC: {
+    underlying: '0xba50Cd2A20f6DA35D788639E581bca8d0B5d4D5f' as Address,
+    aToken: '0x10F1A9D11CDf50041f3f8cB7191CBE2f31750ACC' as Address,
+    decimals: 6,
+    symbol: 'USDC',
+    name: 'USD Coin',
+  },
+  WETH: {
+    underlying: '0x4200000000000000000000000000000000000006' as Address,
+    aToken: '0x73a5bB60b0B0fc35710DDc0ea9c407031E31Bdbb' as Address,
+    decimals: 18,
+    symbol: 'WETH',
+    name: 'Wrapped Ether',
+  },
+  USDT: {
+    underlying: '0x0a215D8ba66387DCA84B284D18c3B4ec3de6E54a' as Address,
+    aToken: '0xcE3CAae5Ed17A7AafCEEbc897DE843fA6CC0c018' as Address,
+    decimals: 6,
+    symbol: 'USDT',
+    name: 'Tether USD',
+  },
+} as const
+
+export type AaveAssetKey = keyof typeof AAVE_ASSETS
+
+/**
+ * Yield deposit configuration
+ */
+export const YIELD_CONFIG = {
+  // Minimum deposit amount in USD
+  minimumDepositUsd: 100,
+  // Mock swap rate: 1:1 for testnet (yield token to mUSD)
+  mockSwapRate: 1n,
+  // Estimated APY for yield calculations (3.5% as basis points)
+  estimatedApyBps: 350,
+  // Referral code for Aave (0 = no referral)
+  referralCode: 0,
+} as const
 export const BASE_MAINNET_RPC_URL =
   import.meta.env.VITE_BASE_MAINNET_RPC_URL || 'https://mainnet.base.org'
 

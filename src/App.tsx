@@ -6,6 +6,7 @@ import { UserList } from '@/components/users'
 import { FaucetDialog } from '@/components/faucet'
 import { DepositDialog } from '@/components/deposit'
 import { BalanceDisplay } from '@/components/balance'
+import { YieldDepositDialog, YieldPositionCard } from '@/components/yield'
 import {
   ConversationList,
   MessageThread,
@@ -72,6 +73,15 @@ function DeveloperSidebar() {
           </div>
           <BalanceDisplay />
           <DepositDialog />
+        </div>
+
+        {/* Yield Deposit Card */}
+        <div className="bg-gradient-to-b from-emerald-950/30 to-zinc-900/50 rounded-lg p-3 space-y-2 ring-1 ring-emerald-800/30">
+          <div className="text-[10px] font-mono text-emerald-500/70 uppercase tracking-wider">
+            Aave V3 Yield
+          </div>
+          <YieldPositionCard />
+          <YieldDepositDialog />
         </div>
       </div>
 
